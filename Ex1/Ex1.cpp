@@ -83,13 +83,17 @@ class answer {
             image.draw_circle(50, 50, 3, yellowChar);
             image.display();
         }
+
+        static void test(CImg<unsigned char>& image) {
+            answer::questionOne(image);
+            answer::questionTwo(image);
+            answer::questionThree(image);
+            answer::questionFour(image);
+        }
 };
+
 
 int main(int argc, char* argv[]) {
     CImg<unsigned char> image("1.bmp");
-    
-    answer::questionOne(image);
-    answer::questionTwo(image);
-    answer::questionThree(image);
-    answer::questionFour(image);
+    answer::test(image);
 }
