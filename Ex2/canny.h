@@ -40,7 +40,9 @@ public:
     Mat threshold(Mat, int, int); //Double threshold and finalize picture
 
     // code0's interface
+    canny(String);
     cannyparam();
+    normalizeContrast(can->data, width, height);
 };
 
 #endif
