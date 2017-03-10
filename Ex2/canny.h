@@ -23,26 +23,30 @@ class canny {
 private:
     CImg<unsigned char> img; //Original Image
     CANNY can;
-    Mat grayscaled; // Grayscale
-    Mat gFiltered; // Gradient
-    Mat sFiltered; //Sobel Filtered
-    Mat angles; //Angle Map
-    Mat non; // Non-maxima supp.
-    Mat thres; //Double threshold and final
+    float lowThreshold;
+    float = highThreshold;
+    float gaussianKernelRadius;
+    int gaussianKernelWidth;
+    bool contrastNormalised;
+
 
 public:
-    canny(String); //Constructor
-	Mat toGrayScale();
-	vector<vector<double>> createFilter(int, int, double); //Creates a gaussian filter
-	Mat useFilter(Mat, vector<vector<double>>); //Use some filter
-    Mat sobel(); //Sobel filtering
-    Mat nonMaxSupp(); //Non-maxima supp.
-    Mat threshold(Mat, int, int); //Double threshold and finalize picture
-
-    // code0's interface
     canny(String);
-    cannyparam();
-    normalizeContrast(can->data, width, height);
+    void setLowThreshold(float);
+    void setHighThreshold(float);
+    void setGaussianKernelRadius(float);
+    void setContrastNormalised(float);
+    void allocationErrorExit(unsigned char*, CANNY*);
+    void run();
+    CANNY *allocatebuffers(unsigned char*, int, int);
+    void killbuffers(CANNY*);
+    void normalizeContrast(can->data, width, height);
+    int computeGradients(CANNY*, float, int);
+    void performHysteresis(CANNY*, int, int);
+    void follow(CANNY*, int, int, int, int);
+    void normalizeContrast(unsigned char*, int, int);
+    float hypotenuse(float, float);
+    float gaussian(float, float);
 };
 
 #endif

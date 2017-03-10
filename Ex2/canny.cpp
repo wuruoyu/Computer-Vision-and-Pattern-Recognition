@@ -6,9 +6,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <iostream>
 #include <vector>
 #include "CImg.h"
 using namespace cimg_library;
+using namespace std;
 
 #define ffabs(x) ( (x) >= 0 ? (x) : -(x) ) 
 #define GAUSSIAN_CUT_OFF 0.005f
@@ -17,28 +19,76 @@ using namespace cimg_library;
 #define MAGNITUDE_MAX ((int) (MAGNITUDE_SCALE * MAGNITUDE_LIMIT))
 
 
-unsigned char *canny(unsigned char *grey, int width, int height);
-unsigned char *cannyparam(unsigned char *grey, int width, int height, 
-						  float lowThreshold, float highthreshold, 
-						  float gaussiankernelradius, int gaussiankernelwidth,  
-						  int contrastnormalised);
+int main(int argc, char* argv[]) {
+	// parameter passes in
+	cout << "Please input the parameter, please type \'N\' as default" << endl;
 
-static CANNY *allocatebuffers(unsigned char *grey, int width, int height);
-static void killbuffers(CANNY *can);
-static int computeGradients(CANNY *can, float kernelRadius, int kernelWidth);
-static void performHysteresis(CANNY *can, int low, int high);
-static void follow(CANNY *can, int x1, int y1, int i1, int threshold);
-
-static void normalizeContrast(unsigned char *data, int width, int height);
-static  float hypotenuse(float x, float y);
-static float gaussian(float x, float sigma);
-
-
-canny::canny(String filename)
-{
-	img = CImg<unsigned char>("filename");
 }
 
+
+canny::canny(String filename) {
+	// import image
+	img = CImg<unsigned char>("filename");
+
+	// set default parameter
+	float lowThreshold = 2.5f,
+    float highThreshold = 7.5f,
+    float gaussianKernelRadius = 2.0f,
+    int gaussianKernelWidth = 16,
+    bool contrastNormalised = false
+}
+
+void canny::setLowThreshold(float lowThreshold) {
+	this->lowThreshold = lowThreshold;
+}
+
+void canny::setHighThreshold(float highThreshold) {
+	this->highThreshold = highThreshold;
+}
+
+void canny::setGaussianKernelRadius(float gaussianKernelRadius) {
+	this->gaussianKernelRadius = gaussianKernelRadius;
+}
+
+void canny::setContrastNormalised(float contrastNormalised) {
+	this->contrastNormalised = contrastNormalised;
+}
+
+void canny::allocationErrorExit(unsigned char* answer, CANNY* can) {
+	free(answer);
+	killbuffers(can);
+	cout << "allocationErrorExit" << endl;
+	exit(-1);
+}
+
+void canny::run() {
+	CANNY *can = 0;
+	unsigned char *answer = 0;
+    int low, high;
+	int err;
+	int i;
+
+    answer = malloc(this->width * this->height);
+	if(!answer)
+		allocationErrorExit(answer, can);
+	can = allocatebuffers(this->img, width, height);
+	if(!can)
+		allocationErrorExit(answer, can);
+
+	if (contrastNormalised) 
+		normalizeContrast(can->data, width, height);
+
+	if (computeGradients(can, gaussiankernelradius, gaussiankernelwidth) < 0)
+		allocationErrorExit;
+
+	int low = (int) (this->lowthreshold * MAGNITUDE_SCALE + 0.5f);
+	int high = (int) ( this->highthreshold * MAGNITUDE_SCALE + 0.5f);
+	performHysteresis(can, low, high);
+	for (int i = 0; i < width * height; i ++)
+		answer[i] = can->idata[i] > 0 ? 1 : 0;
+	killbuffers(can);
+	return answer;
+}
 
 /*
  Canny edge detection, default parameters will be used if no passed in
@@ -51,7 +101,7 @@ canny::canny(String filename)
 		   gaussiankernelwidth - width of Gaussian kernel, in pixels (default 16)
 		   contrastnormalised - flag to normalise image before edge detection (defualt 0)
    Returns: binary image with set pixels as edges
-*/
+
 unsigned char* canny::cannyparam(unsigned char *grey, 
 						  		 int width, 
 						  		 int height, 
@@ -73,8 +123,8 @@ unsigned char* canny::cannyparam(unsigned char *grey,
 	can = allocatebuffers(grey, width, height);
 	if(!can)
 		goto error_exit;
-	if (contrastnormalised) 
-		canny::normalizeContrast(can->data, width, height);
+	if (contrastNormalised) 
+		normalizeContrast(can->data, width, height);
 
 	err = computeGradients(can, gaussiankernelradius, gaussiankernelwidth);
 	if(err < 0)
@@ -90,14 +140,14 @@ unsigned char* canny::cannyparam(unsigned char *grey,
 error_exit:
 	free(answer);
 	killbuffers(can);
-	return 0;
 }
+*/
 
 
 /*
   buffer allocation
 */
-static CANNY *allocatebuffers(unsigned char *grey, int width, int height)
+CANNY *allocatebuffers(unsigned char *grey, int width, int height)
 {
 	CANNY *answer;
 
@@ -129,7 +179,7 @@ error_exit:
 /*
   buffers destructor
 */
-static void killbuffers(CANNY *can)
+void killbuffers(CANNY *can)
 {
 	if(can)
 	{
@@ -155,7 +205,7 @@ static void killbuffers(CANNY *can)
 	contact me for an alternative, though less efficient, implementation.
 	*/
 	
-static int computeGradients(CANNY *can, float kernelRadius, int kernelWidth) 
+int computeGradients(CANNY *can, float kernelRadius, int kernelWidth) 
 {	
 		float *kernel;
 		float *diffKernel;
@@ -352,7 +402,7 @@ error_exit:
 	  we follow edges. high gives the parameter for starting an edge,
 	  how the parameter for continuing it.
 	*/
-static void performHysteresis(CANNY *can, int low, int high) 
+void performHysteresis(CANNY *can, int low, int high) 
 {
   int offset = 0;
   int x, y;
@@ -374,7 +424,7 @@ static void performHysteresis(CANNY *can, int low, int high)
 	  recursive portion of edge follower 
 	*/
 	
-static  void follow(CANNY *can, int x1, int y1, int i1, int threshold) 
+void follow(CANNY *can, int x1, int y1, int i1, int threshold) 
 {
   int x, y;
   int x0 = x1 == 0 ? x1 : x1 - 1;
@@ -394,7 +444,7 @@ static  void follow(CANNY *can, int x1, int y1, int i1, int threshold)
   }
 }
 
-static void normalizeContrast(unsigned char *data, int width, int height) 
+void normalizeContrast(unsigned char *data, int width, int height) 
 {
 	int histogram[256] = {0};
     int remap[256];
@@ -422,12 +472,12 @@ static void normalizeContrast(unsigned char *data, int width, int height)
 }
 
 
-static  float hypotenuse(float x, float y) 
+float hypotenuse(float x, float y) 
 {
 	return (float) sqrt(x*x +y*y);
 }
  
-static float gaussian(float x, float sigma) 
+float gaussian(float x, float sigma) 
 {
 	return (float) exp(-(x * x) / (2.0f * sigma * sigma));
 }
