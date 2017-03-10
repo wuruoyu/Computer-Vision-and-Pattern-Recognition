@@ -9,6 +9,7 @@
 #include <iostream>
 #include <vector>
 #include "CImg.h"
+#include "canny.h"
 using namespace cimg_library;
 using namespace std;
 
@@ -26,16 +27,20 @@ int main(int argc, char* argv[]) {
 }
 
 
-canny::canny(String filename) {
+canny::canny(string filename) {
 	// import image
-	img = CImg<unsigned char>("filename");
+	img = CImg<unsigned char>(filename.c_str());
+
+	// set image parameters
+	this->width = img.width();
+	this->height = img.height();
 
 	// set default parameter
-	float lowThreshold = 2.5f,
-    float highThreshold = 7.5f,
-    float gaussianKernelRadius = 2.0f,
-    int gaussianKernelWidth = 16,
-    bool contrastNormalised = false
+	float lowThreshold = 2.5f;
+    float highThreshold = 7.5f;
+    float gaussianKernelRadius = 2.0f;
+    int gaussianKernelWidth = 16;
+    bool contrastNormalised = false;
 }
 
 void canny::setLowThreshold(float lowThreshold) {
@@ -64,11 +69,10 @@ void canny::allocationErrorExit(unsigned char* answer, CANNY* can) {
 void canny::run() {
 	CANNY *can = 0;
 	unsigned char *answer = 0;
-    int low, high;
 	int err;
 	int i;
 
-    answer = malloc(this->width * this->height);
+    answer = (unsigned char*)malloc(this->width * this->height);
 	if(!answer)
 		allocationErrorExit(answer, can);
 	can = allocatebuffers(this->img, width, height);
@@ -78,16 +82,16 @@ void canny::run() {
 	if (contrastNormalised) 
 		normalizeContrast(can->data, width, height);
 
-	if (computeGradients(can, gaussiankernelradius, gaussiankernelwidth) < 0)
-		allocationErrorExit;
+	if (computeGradients(can, this->gaussianKernelRadius, this->gaussianKernelWidth) < 0)
+		allocationErrorExit(answer, can);
 
-	int low = (int) (this->lowthreshold * MAGNITUDE_SCALE + 0.5f);
-	int high = (int) ( this->highthreshold * MAGNITUDE_SCALE + 0.5f);
+	int low = (int) (this->lowThreshold * MAGNITUDE_SCALE + 0.5f);
+	int high = (int) ( this->highThreshold * MAGNITUDE_SCALE + 0.5f);
 	performHysteresis(can, low, high);
 	for (int i = 0; i < width * height; i ++)
 		answer[i] = can->idata[i] > 0 ? 1 : 0;
 	killbuffers(can);
-	return answer;
+	// return answer;
 }
 
 /*
@@ -147,20 +151,20 @@ error_exit:
 /*
   buffer allocation
 */
-CANNY *allocatebuffers(unsigned char *grey, int width, int height)
+CANNY* canny::allocatebuffers(unsigned char *grey, int width, int height)
 {
 	CANNY *answer;
 
-	answer = malloc(sizeof(CANNY));
+	answer = (CANNY*)malloc(sizeof(CANNY));
 	if(!answer)
 		goto error_exit;
-	answer->data = malloc(width * height);
-	answer->idata = malloc(width * height * sizeof(int));
-	answer->magnitude = malloc(width * height * sizeof(int));
-	answer->xConv = malloc(width * height * sizeof(float));
-	answer->yConv = malloc(width * height * sizeof(float));
-	answer->xGradient = malloc(width * height * sizeof(float));
-	answer->yGradient = malloc(width * height * sizeof(float));
+	answer->data = (unsigned char*)malloc(width * height);
+	answer->idata = (int*)malloc(width * height * sizeof(int));
+	answer->magnitude = (int*)malloc(width * height * sizeof(int));
+	answer->xConv = (float*)malloc(width * height * sizeof(float));
+	answer->yConv = (float*)malloc(width * height * sizeof(float));
+	answer->xGradient = (float*)malloc(width * height * sizeof(float));
+	answer->yGradient = (float*)malloc(width * height * sizeof(float));
 	if(!answer->data || !answer->idata || !answer->magnitude || 
 		!answer->xConv || !answer->yConv || 
 		!answer->xGradient || !answer->yGradient)
@@ -179,7 +183,7 @@ error_exit:
 /*
   buffers destructor
 */
-void killbuffers(CANNY *can)
+void canny::killbuffers(CANNY *can)
 {
 	if(can)
 	{
@@ -205,7 +209,7 @@ void killbuffers(CANNY *can)
 	contact me for an alternative, though less efficient, implementation.
 	*/
 	
-int computeGradients(CANNY *can, float kernelRadius, int kernelWidth) 
+int canny::computeGradients(CANNY *can, float kernelRadius, int kernelWidth) 
 {	
 		float *kernel;
 		float *diffKernel;
@@ -225,8 +229,8 @@ int computeGradients(CANNY *can, float kernelRadius, int kernelWidth)
 		width = can->width;
         height = can->height;
 
-		kernel = malloc(kernelWidth * sizeof(float));
-		diffKernel = malloc(kernelWidth * sizeof(float));
+		kernel = (float*)malloc(kernelWidth * sizeof(float));
+		diffKernel = (float*)malloc(kernelWidth * sizeof(float));
 		if(!kernel || !diffKernel)
 			goto error_exit;
 
@@ -402,7 +406,7 @@ error_exit:
 	  we follow edges. high gives the parameter for starting an edge,
 	  how the parameter for continuing it.
 	*/
-void performHysteresis(CANNY *can, int low, int high) 
+void canny::performHysteresis(CANNY *can, int low, int high) 
 {
   int offset = 0;
   int x, y;
@@ -424,7 +428,7 @@ void performHysteresis(CANNY *can, int low, int high)
 	  recursive portion of edge follower 
 	*/
 	
-void follow(CANNY *can, int x1, int y1, int i1, int threshold) 
+void canny::follow(CANNY *can, int x1, int y1, int i1, int threshold) 
 {
   int x, y;
   int x0 = x1 == 0 ? x1 : x1 - 1;
@@ -444,7 +448,7 @@ void follow(CANNY *can, int x1, int y1, int i1, int threshold)
   }
 }
 
-void normalizeContrast(unsigned char *data, int width, int height) 
+void canny::normalizeContrast(unsigned char *data, int width, int height) 
 {
 	int histogram[256] = {0};
     int remap[256];
@@ -472,12 +476,12 @@ void normalizeContrast(unsigned char *data, int width, int height)
 }
 
 
-float hypotenuse(float x, float y) 
+float canny::hypotenuse(float x, float y) 
 {
 	return (float) sqrt(x*x +y*y);
 }
  
-float gaussian(float x, float sigma) 
+float canny::gaussian(float x, float sigma) 
 {
 	return (float) exp(-(x * x) / (2.0f * sigma * sigma));
 }

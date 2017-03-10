@@ -23,15 +23,17 @@ class canny {
 private:
     CImg<unsigned char> img; //Original Image
     CANNY can;
+    int width;
+    int height;
     float lowThreshold;
-    float = highThreshold;
+    float highThreshold;
     float gaussianKernelRadius;
     int gaussianKernelWidth;
     bool contrastNormalised;
 
 
 public:
-    canny(String);
+    canny(string);
     void setLowThreshold(float);
     void setHighThreshold(float);
     void setGaussianKernelRadius(float);
@@ -40,11 +42,10 @@ public:
     void run();
     CANNY *allocatebuffers(unsigned char*, int, int);
     void killbuffers(CANNY*);
-    void normalizeContrast(can->data, width, height);
+    void normalizeContrast(unsigned char*, int, int);
     int computeGradients(CANNY*, float, int);
     void performHysteresis(CANNY*, int, int);
     void follow(CANNY*, int, int, int, int);
-    void normalizeContrast(unsigned char*, int, int);
     float hypotenuse(float, float);
     float gaussian(float, float);
 };
