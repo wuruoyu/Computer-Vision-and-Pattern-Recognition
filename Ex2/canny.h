@@ -21,15 +21,19 @@ typedef struct
 
 class canny {   
 private:
-    CImg<unsigned char> img; //Original Image
+    CImg<unsigned char> img; // Original Image
+    CImg<unsigned char> edge; // image after edge detected
     CANNY can;
     int width;
     int height;
+    // manual parameter
     float lowThreshold;
     float highThreshold;
     float gaussianKernelRadius;
     int gaussianKernelWidth;
     bool contrastNormalised;
+    // fixed parameter
+    const float gaussianCutOff = 0.005f;
 
 
 public:
@@ -48,6 +52,7 @@ public:
     void follow(CANNY*, int, int, int, int);
     float hypotenuse(float, float);
     float gaussian(float, float);
+    void showEdgeDetected(unsigned char*);
 };
 
 #endif
