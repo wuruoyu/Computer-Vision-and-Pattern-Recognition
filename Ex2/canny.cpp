@@ -5,6 +5,7 @@
 
 #include <vector>
 #include "CImg.h"
+#include <iostream>
 #include "canny.h"
 using namespace cimg_library;
 using namespace std;
@@ -64,12 +65,16 @@ void canny::run() {
 	int err;
 	int i;
 
-	allocatebuffers((unsigned char*)(this->img).data(), width, height);
+	allocatebuffers((unsigned char*)(this->img).data());
+
+	cout << "dsafvc " << endl;
 
 	if (contrastNormalised) 
 		normalizeContrast(this->data, this->width, this->height);
 
-	if (computeGradients() < 0) {
+	cout << "das"<< endl;
+
+	if (!computeGradients()) {
 		killbuffers();
 	}
 
@@ -79,6 +84,7 @@ void canny::run() {
 	for (int i = 0; i < this->width * this->height; i ++)
 		this->idata[i] = this->idata[i] > 0 ? 1 : 0;
 	showEdgeDetected();
+	cout << "dsa" <<endl;
 	killbuffers();
 }
 
@@ -86,15 +92,16 @@ void canny::run() {
 /*
   buffer allocation
 */
-void canny::allocatebuffers(unsigned char *grey, int width, int height)
+void canny::allocatebuffers(unsigned char *grey)
 {
-	this->data = (unsigned char*)malloc(width * height);
-	this->idata = (int*)malloc(width * height * sizeof(int));
-	this->magnitude = (int*)malloc(width * height * sizeof(int));
-	this->xConv = (float*)malloc(width * height * sizeof(float));
-	this->yConv = (float*)malloc(width * height * sizeof(float));
-	this->xGradient = (float*)malloc(width * height * sizeof(float));
-	this->yGradient = (float*)malloc(width * height * sizeof(float));
+	cout << width << endl << height << endl;
+	this->data = new unsigned char[width * height];
+	this->idata = new int[width * height];
+	this->magnitude = new int[width * height];
+	this->xConv = new float[width * height];
+	this->yConv = new float[width * height];
+	this->xGradient = new float[width * height];
+	this->yGradient = new float[width * height];
 	if(!this->data || !this->idata || !this->magnitude || !this->xConv || !this->yConv || 
 		!this->xGradient || !this->yGradient)
 		killbuffers();
@@ -109,19 +116,20 @@ void canny::allocatebuffers(unsigned char *grey, int width, int height)
 void canny::killbuffers()
 {
 	if (data)
-		free(data);
+		delete [] data;
 	if (idata)
-		free(idata);
+		delete [] idata;
 	if (magnitude)
-		free(magnitude);
+		delete [] magnitude;
 	if (xConv)
-		free(xConv);
+		delete [] xConv;
 	if (yConv)
-		free(yConv);
+		delete [] yConv;
 	if (xGradient)
-		free(xGradient);
+		delete [] xGradient;
 	if (yGradient)
-		free(yGradient);
+		delete [] yGradient;
+	exit(-1);
 }
 
 
@@ -136,7 +144,7 @@ void canny::killbuffers()
 	someone's intellectual property rights. If this concerns you feel free to
 	contact me for an alternative, though less efficient, implementation.
 	*/
-int canny::computeGradients() 
+bool canny::computeGradients() 
 {	
 	float *kernel;
 	float *diffKernel;
@@ -151,10 +159,12 @@ int canny::computeGradients()
 	int i;
 	int flag;
 
-	kernel = (float*)malloc(gaussianKernelWidth * sizeof(float));
-	diffKernel = (float*)malloc(gaussianKernelWidth * sizeof(float));
-	if(!kernel || !diffKernel)
+	kernel = new float[gaussianKernelWidth];
+	diffKernel = new float[gaussianKernelWidth];
+	if(!kernel || !diffKernel) {
+		cout << "here" << endl;
 		goto error_exit;
+	}
 
 
 	/* initialise the Gaussian kernel */
@@ -314,13 +324,14 @@ int canny::computeGradients()
 			}
 		}
 	}
-	free(kernel);
-	free(diffKernel);
-	return 0;
+	delete[] kernel;
+	delete[] diffKernel;
+	return true;
+
 error_exit:
-		free(kernel);
-		free(diffKernel);
-		return -1;
+		delete[] kernel;
+		delete[] diffKernel;
+		return false;
 }
 	
 /*

@@ -42,9 +42,9 @@ public:
     void setGaussianKernelRadius(float);
     void setContrastNormalised(float);
     void run();
-    void allocatebuffers(unsigned char*, int, int);
+    void allocatebuffers(unsigned char*);
     void normalizeContrast(unsigned char*, int, int);
-    int computeGradients();
+    bool computeGradients();
     void performHysteresis();
     void follow(int, int, int, int);
     float hypotenuse(float, float);
