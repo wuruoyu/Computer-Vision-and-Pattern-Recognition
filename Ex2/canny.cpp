@@ -1,21 +1,17 @@
 /*
   Originally C version, based on Java code by Tom Gibara
-  Rewritten by RuoyuWu for the course Computer Vision and Pattern Recognition
+  Rewritten by RuoyuWu in C++ for the course Computer Vision and Pattern Recognition
 */
 
-#include <stdlib.h>
-#include <math.h>
-#include <iostream>
 #include <vector>
 #include "CImg.h"
 #include "canny.h"
 using namespace cimg_library;
 using namespace std;
 
-#define ffabs(x) ( (x) >= 0 ? (x) : -(x) ) 
-#define MAGNITUDE_SCALE 100.0f
-#define MAGNITUDE_LIMIT 1000.0f
-#define MAGNITUDE_MAX ((int) (MAGNITUDE_SCALE * MAGNITUDE_LIMIT))
+float canny::ffabs(int x) {
+	return x >= 0 ? x : -x;
+}
 
 canny::canny(const char* const filename) {
 	// import image
@@ -58,100 +54,74 @@ void canny::setContrastNormalised(float contrastNormalised) {
 	this->contrastNormalised = contrastNormalised;
 }
 
-void canny::allocationErrorExit(unsigned char* answer, CANNY* can) {
-	free(answer);
-	killbuffers(can);
-	cout << "allocationErrorExit" << endl;
-	exit(-1);
-}
 
-void canny::showEdgeDetected(unsigned char* answer) {
-	this->edge = CImg<unsigned char>(answer, (this->img).width(), (this->img).height(), 1, 1, false);
+void canny::showEdgeDetected() {
+	this->edge = CImg<unsigned char>(this->idata, (this->img).width(), (this->img).height(), 1, 1, false);
 	this->edge.display();
 }
 
 void canny::run() {
-	CANNY *can = 0;
-	unsigned char *answer = 0;
 	int err;
 	int i;
 
-
-    answer = (unsigned char*)malloc(this->width * this->height);
-	if(!answer)
-		allocationErrorExit(answer, can);
-	can = allocatebuffers((unsigned char*)(this->img).data(), width, height);
-	if(!can)
-		allocationErrorExit(answer, can);
-
+	allocatebuffers((unsigned char*)(this->img).data(), width, height);
 
 	if (contrastNormalised) 
-		normalizeContrast(can->data, this->width, this->height);
+		normalizeContrast(this->data, this->width, this->height);
 
-
-	if (computeGradients(can, this->gaussianKernelRadius, this->gaussianKernelWidth) < 0) {
-		cout << "Gradient Computing Error" << endl;
-		allocationErrorExit(answer, can);
+	if (computeGradients() < 0) {
+		killbuffers();
 	}
 
-	int low = (int) (this->lowThreshold * MAGNITUDE_SCALE + 0.5f);
-	int high = (int) ( this->highThreshold * MAGNITUDE_SCALE + 0.5f);
-	performHysteresis(can, low, high);
+	int low = (int) (this->lowThreshold * magnitudeScale + 0.5f);
+	int high = (int) ( this->highThreshold * magnitudeScale + 0.5f);
+	performHysteresis();
 	for (int i = 0; i < this->width * this->height; i ++)
-		answer[i] = can->idata[i] > 0 ? 1 : 0;
-	killbuffers(can);
-	showEdgeDetected(answer);
+		this->idata[i] = this->idata[i] > 0 ? 1 : 0;
+	showEdgeDetected();
+	killbuffers();
 }
 
 
 /*
   buffer allocation
 */
-CANNY* canny::allocatebuffers(unsigned char *grey, int width, int height)
+void canny::allocatebuffers(unsigned char *grey, int width, int height)
 {
-	CANNY *answer;
+	this->data = (unsigned char*)malloc(width * height);
+	this->idata = (int*)malloc(width * height * sizeof(int));
+	this->magnitude = (int*)malloc(width * height * sizeof(int));
+	this->xConv = (float*)malloc(width * height * sizeof(float));
+	this->yConv = (float*)malloc(width * height * sizeof(float));
+	this->xGradient = (float*)malloc(width * height * sizeof(float));
+	this->yGradient = (float*)malloc(width * height * sizeof(float));
+	if(!this->data || !this->idata || !this->magnitude || !this->xConv || !this->yConv || 
+		!this->xGradient || !this->yGradient)
+		killbuffers();
 
-	answer = (CANNY*)malloc(sizeof(CANNY));
-	if(!answer)
-		goto error_exit;
-	answer->data = (unsigned char*)malloc(width * height);
-	answer->idata = (int*)malloc(width * height * sizeof(int));
-	answer->magnitude = (int*)malloc(width * height * sizeof(int));
-	answer->xConv = (float*)malloc(width * height * sizeof(float));
-	answer->yConv = (float*)malloc(width * height * sizeof(float));
-	answer->xGradient = (float*)malloc(width * height * sizeof(float));
-	answer->yGradient = (float*)malloc(width * height * sizeof(float));
-	if(!answer->data || !answer->idata || !answer->magnitude || 
-		!answer->xConv || !answer->yConv || 
-		!answer->xGradient || !answer->yGradient)
-		goto error_exit;
-
-	memcpy(answer->data, grey, width * height);
-	answer->width = this->width;
-	answer->height = this->height;
-
-	return answer;
-error_exit:
-	killbuffers(answer);
-	return 0;
+	memcpy(this->data, grey, width * height);
 }
 
 
 /*
   buffers destructor
 */
-void canny::killbuffers(CANNY *can)
+void canny::killbuffers()
 {
-	if(can)
-	{
-		free(can->data);
-		free(can->idata);
-		free(can->magnitude);
-		free(can->xConv);
-		free(can->yConv);
-		free(can->xGradient);
-		free(can->yGradient);
-	}
+	if (data)
+		free(data);
+	if (idata)
+		free(idata);
+	if (magnitude)
+		free(magnitude);
+	if (xConv)
+		free(xConv);
+	if (yConv)
+		free(yConv);
+	if (xGradient)
+		free(xGradient);
+	if (yGradient)
+		free(yGradient);
 }
 
 
@@ -166,7 +136,7 @@ void canny::killbuffers(CANNY *can)
 	someone's intellectual property rights. If this concerns you feel free to
 	contact me for an alternative, though less efficient, implementation.
 	*/
-int canny::computeGradients(CANNY *can, float kernelRadius, int kernelWidth) 
+int canny::computeGradients() 
 {	
 	float *kernel;
 	float *diffKernel;
@@ -181,31 +151,28 @@ int canny::computeGradients(CANNY *can, float kernelRadius, int kernelWidth)
 	int i;
 	int flag;
 
-	int width = can->width;
-    int height = can->height;
-
-	kernel = (float*)malloc(kernelWidth * sizeof(float));
-	diffKernel = (float*)malloc(kernelWidth * sizeof(float));
+	kernel = (float*)malloc(gaussianKernelWidth * sizeof(float));
+	diffKernel = (float*)malloc(gaussianKernelWidth * sizeof(float));
 	if(!kernel || !diffKernel)
 		goto error_exit;
 
 
 	/* initialise the Gaussian kernel */
-	for (kwidth = 0; kwidth < kernelWidth; kwidth++) 
+	for (kwidth = 0; kwidth < gaussianKernelWidth; kwidth++) 
 	{
-		float g1 = gaussian((float)kwidth, kernelRadius);
+		float g1 = gaussian((float)kwidth, gaussianKernelRadius);
 		if (g1 <= gaussianCutOff && kwidth >= 2) 
 			break;
-		float g2 = gaussian(kwidth - 0.5f, kernelRadius);
-		float g3 = gaussian(kwidth + 0.5f, kernelRadius);
-		kernel[kwidth] = (g1 + g2 + g3) / 3.0f / (2.0f * (float) 3.14 * kernelRadius * kernelRadius);
+		float g2 = gaussian(kwidth - 0.5f, gaussianKernelRadius);
+		float g3 = gaussian(kwidth + 0.5f, gaussianKernelRadius);
+		kernel[kwidth] = (g1 + g2 + g3) / 3.0f / (2.0f * (float) 3.14 * gaussianKernelRadius * gaussianKernelRadius);
 		diffKernel[kwidth] = g3 - g2;
 	}
 
 	initX = kwidth - 1;
 	maxX = width - (kwidth - 1);
 	initY = width * (kwidth - 1);
-	maxY = width * (height - (kwidth - 1));
+	maxY = this->width * (this->height - (kwidth - 1));
 	
 	/* perform convolution in x and y directions */
 	for(x = initX; x < maxX; x++) 
@@ -213,34 +180,34 @@ int canny::computeGradients(CANNY *can, float kernelRadius, int kernelWidth)
 		for(y = initY; y < maxY; y += width) 
 		{
 			int index = x + y;
-			float sumX = can->data[index] * kernel[0];
+			float sumX = this->data[index] * kernel[0];
 			float sumY = sumX;
 			int xOffset = 1;
-			int yOffset = width;
+			int yOffset = this->width;
 			while(xOffset < kwidth) 
 			{
-				sumY += kernel[xOffset] * (can->data[index - yOffset] + can->data[index + yOffset]);
-				sumX += kernel[xOffset] * (can->data[index - xOffset] + can->data[index + xOffset]);
-				yOffset += width;
+				sumY += kernel[xOffset] * (this->data[index - yOffset] + this->data[index + yOffset]);
+				sumX += kernel[xOffset] * (this->data[index - xOffset] + this->data[index + xOffset]);
+				yOffset += this->width;
 				xOffset++;
 			}
 			
-			can->yConv[index] = sumY;
-			can->xConv[index] = sumX;
+			this->yConv[index] = sumY;
+			this->xConv[index] = sumX;
 		}
 
 	}
 
 	for (x = initX; x < maxX; x++) 
 	{
-		for (y = initY; y < maxY; y += width) 
+		for (y = initY; y < maxY; y += this->width) 
 		{
 			float sum = 0.0f;
 			int index = x + y;
 			for (i = 1; i < kwidth; i++)
-				sum += diffKernel[i] * (can->yConv[index - i] - can->yConv[index + i]);
+				sum += diffKernel[i] * (this->yConv[index - i] - this->yConv[index + i]);
 
-			can->xGradient[index] = sum;
+			this->xGradient[index] = sum;
 		}
 
 	}
@@ -254,18 +221,18 @@ int canny::computeGradients(CANNY *can, float kernelRadius, int kernelWidth)
 			int yOffset = width;
 			for (i = 1; i < kwidth; i++) 
 			{
-				sum += diffKernel[i] * (can->xConv[index - yOffset] - can->xConv[index + yOffset]);
-				yOffset += width;
+				sum += diffKernel[i] * (this->xConv[index - yOffset] - this->xConv[index + yOffset]);
+				yOffset += this->width;
 			}
 
-			can->yGradient[index] = sum;
+			this->yGradient[index] = sum;
 		}
 	}
 
 	initX = kwidth;
 	maxX = width - kwidth;
 	initY = width * kwidth;
-	maxY = width * (height - kwidth);
+	maxY = this->width * (this->height - kwidth);
 	for(x = initX; x < maxX; x++) 
 	{
 		for(y = initY; y < maxY; y += width) 
@@ -280,19 +247,19 @@ int canny::computeGradients(CANNY *can, float kernelRadius, int kernelWidth)
 			int indexSW = indexS - 1;
 			int indexSE = indexS + 1;
 			
-			float xGrad = can->xGradient[index];
-			float yGrad = can->yGradient[index];
+			float xGrad = this->xGradient[index];
+			float yGrad = this->yGradient[index];
 			float gradMag = hypotenuse(xGrad, yGrad);
 
 			/* perform non-maximal supression */
-			float nMag = hypotenuse(can->xGradient[indexN], can->yGradient[indexN]);
-			float sMag = hypotenuse(can->xGradient[indexS], can->yGradient[indexS]);
-			float wMag = hypotenuse(can->xGradient[indexW], can->yGradient[indexW]);
-			float eMag = hypotenuse(can->xGradient[indexE], can->yGradient[indexE]);
-			float neMag = hypotenuse(can->xGradient[indexNE], can->yGradient[indexNE]);
-			float seMag = hypotenuse(can->xGradient[indexSE], can->yGradient[indexSE]);
-			float swMag = hypotenuse(can->xGradient[indexSW], can->yGradient[indexSW]);
-			float nwMag = hypotenuse(can->xGradient[indexNW], can->yGradient[indexNW]);
+			float nMag = hypotenuse(this->xGradient[indexN], this->yGradient[indexN]);
+			float sMag = hypotenuse(this->xGradient[indexS], this->yGradient[indexS]);
+			float wMag = hypotenuse(this->xGradient[indexW], this->yGradient[indexW]);
+			float eMag = hypotenuse(this->xGradient[indexE], this->yGradient[indexE]);
+			float neMag = hypotenuse(this->xGradient[indexNE], this->yGradient[indexNE]);
+			float seMag = hypotenuse(this->xGradient[indexSE], this->yGradient[indexSE]);
+			float swMag = hypotenuse(this->xGradient[indexSW], this->yGradient[indexSW]);
+			float nwMag = hypotenuse(this->xGradient[indexNW], this->yGradient[indexNW]);
 			float tmp;
 			/*
 			 * An explanation of what's happening here, for those who want
@@ -336,14 +303,14 @@ int canny::computeGradients(CANNY *can, float kernelRadius, int kernelWidth)
 				);
             if(flag)
 			{
-				can->magnitude[index] = (gradMag >= MAGNITUDE_LIMIT) ? MAGNITUDE_MAX : (int) (MAGNITUDE_SCALE * gradMag);
+				this->magnitude[index] = (gradMag >= magnitudeLimit) ? int(magnitudeScale * magnitudeLimit) : (int) (magnitudeScale * gradMag);
 				/*NOTE: The orientation of the edge is not employed by this
 				 implementation. It is a simple matter to compute it at
 				this point as: Math.atan2(yGrad, xGrad); */
 			} 
 			else 
 			{
-				can->magnitude[index] = 0;
+				this->magnitude[index] = 0;
 			}
 		}
 	}
@@ -360,19 +327,19 @@ error_exit:
   we follow edges. high gives the parameter for starting an edge,
   how the parameter for continuing it.
 */
-void canny::performHysteresis(CANNY *can, int low, int high) 
+void canny::performHysteresis() 
 {
   int offset = 0;
   int x, y;
 	
-  memset(can->idata, 0, can->width * can->height * sizeof(int));
+  memset(this->idata, 0, this->width * this->height * sizeof(int));
 		
-  for(y = 0; y < can->height; y++)
+  for(y = 0; y < this->height; y++)
   {
-    for(x = 0; x < can->width; x++)
+    for(x = 0; x < this->width; x++)
 	{
-      if(can->idata[offset] == 0 && can->magnitude[offset] >= high) 
-	    follow(can, x, y, offset, low);
+      if(this->idata[offset] == 0 && this->magnitude[offset] >= this->highThreshold * magnitudeScale + 0.5f) 
+	    follow(x, y, offset, this->lowThreshold * magnitudeScale + 0.5f);
 	  offset++;
     }
   }
@@ -381,22 +348,22 @@ void canny::performHysteresis(CANNY *can, int low, int high)
 /*
   recursive portion of edge follower 
 */	
-void canny::follow(CANNY *can, int x1, int y1, int i1, int threshold) 
+void canny::follow(int x1, int y1, int i1, int threshold) 
 {
   int x, y;
   int x0 = x1 == 0 ? x1 : x1 - 1;
-  int x2 = x1 == can->width - 1 ? x1 : x1 + 1;
+  int x2 = x1 == this->width - 1 ? x1 : x1 + 1;
   int y0 = y1 == 0 ? y1 : y1 - 1;
-  int y2 = y1 == can->height -1 ? y1 : y1 + 1;
+  int y2 = y1 == this->height -1 ? y1 : y1 + 1;
 		
-  can->idata[i1] = can->magnitude[i1];
+  this->idata[i1] = this->magnitude[i1];
   for (x = x0; x <= x2; x++) 
   {
     for (y = y0; y <= y2; y++) 
 	{
-      int i2 = x + y * can->width;
-	  if ((y != y1 || x != x1) && can->idata[i2] == 0 && can->magnitude[i2] >= threshold) 
-	    follow(can, x, y, i2, threshold);
+      int i2 = x + y * this->width;
+	  if ((y != y1 || x != x1) && this->idata[i2] == 0 && this->magnitude[i2] >= threshold) 
+	    follow(x, y, i2, threshold);
     }
   }
 }
