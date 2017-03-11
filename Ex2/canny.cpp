@@ -17,9 +17,9 @@ using namespace std;
 #define MAGNITUDE_LIMIT 1000.0f
 #define MAGNITUDE_MAX ((int) (MAGNITUDE_SCALE * MAGNITUDE_LIMIT))
 
-canny::canny(string filename) {
+canny::canny(const char* const filename) {
 	// import image
-	this->img = CImg<unsigned char>(filename.c_str());
+	this->img = CImg<unsigned char>(filename);
 	rgb2bmp();
 
 	// set image parameters
@@ -27,15 +27,19 @@ canny::canny(string filename) {
 	this->height = this->img.height();
 
 	// set default parameter
-	float lowThreshold = 2.5f;
-    float highThreshold = 7.5f;
-    float gaussianKernelRadius = 2.0f;
-    int gaussianKernelWidth = 16;
-    bool contrastNormalised = false;
+	this->lowThreshold = 2.5f;
+    this->highThreshold = 7.5f;
+    this->gaussianKernelRadius = 2.0f;
+    this->gaussianKernelWidth = 16;
+    this->contrastNormalised = false;
 }
 
-void rgb2bmp() {
-	this->img = 
+void canny::rgb2bmp() {
+	CImg<unsigned char> imgTemp((this->img).width(), (this->img).height(), 1, 1, 0);
+	cimg_forXY(this->img, x, y) {
+		imgTemp(x, y, 0) = 0.299 * this->img(x, y, 0) + 0.587 * this->img(x, y, 1) + 0.144 * this->img(x, y, 2);
+	};
+	this->img = imgTemp;
 }
 
 void canny::setLowThreshold(float lowThreshold) {
@@ -62,7 +66,7 @@ void canny::allocationErrorExit(unsigned char* answer, CANNY* can) {
 }
 
 void canny::showEdgeDetected(unsigned char* answer) {
-	this->edge = CImg<unsigned char>(answer, this->width, this->height, 1, 1, false);
+	this->edge = CImg<unsigned char>(answer, (this->img).width(), (this->img).height(), 1, 1, false);
 	this->edge.display();
 }
 
@@ -72,15 +76,18 @@ void canny::run() {
 	int err;
 	int i;
 
+
     answer = (unsigned char*)malloc(this->width * this->height);
 	if(!answer)
 		allocationErrorExit(answer, can);
-	can = allocatebuffers(this->img.data, width, height);
+	can = allocatebuffers((unsigned char*)(this->img).data(), width, height);
 	if(!can)
 		allocationErrorExit(answer, can);
 
+
 	if (contrastNormalised) 
-		normalizeContrast(can->data, width, height);
+		normalizeContrast(can->data, this->width, this->height);
+
 
 	if (computeGradients(can, this->gaussianKernelRadius, this->gaussianKernelWidth) < 0) {
 		cout << "Gradient Computing Error" << endl;
@@ -90,7 +97,7 @@ void canny::run() {
 	int low = (int) (this->lowThreshold * MAGNITUDE_SCALE + 0.5f);
 	int high = (int) ( this->highThreshold * MAGNITUDE_SCALE + 0.5f);
 	performHysteresis(can, low, high);
-	for (int i = 0; i < width * height; i ++)
+	for (int i = 0; i < this->width * this->height; i ++)
 		answer[i] = can->idata[i] > 0 ? 1 : 0;
 	killbuffers(can);
 	showEdgeDetected(answer);
@@ -120,14 +127,15 @@ CANNY* canny::allocatebuffers(unsigned char *grey, int width, int height)
 		goto error_exit;
 
 	memcpy(answer->data, grey, width * height);
-	answer->width = width;
-	answer->height = height;
+	answer->width = this->width;
+	answer->height = this->height;
 
 	return answer;
 error_exit:
 	killbuffers(answer);
 	return 0;
 }
+
 
 /*
   buffers destructor
@@ -146,6 +154,7 @@ void canny::killbuffers(CANNY *can)
 	}
 }
 
+
 /* NOTE: The elements of the method below (specifically the technique for
 	non-maximal suppression and the technique for gradient computation)
 	are derived from an implementation posted in the following forum (with the
@@ -157,7 +166,6 @@ void canny::killbuffers(CANNY *can)
 	someone's intellectual property rights. If this concerns you feel free to
 	contact me for an alternative, though less efficient, implementation.
 	*/
-	
 int canny::computeGradients(CANNY *can, float kernelRadius, int kernelWidth) 
 {	
 	float *kernel;
@@ -180,6 +188,7 @@ int canny::computeGradients(CANNY *can, float kernelRadius, int kernelWidth)
 	diffKernel = (float*)malloc(kernelWidth * sizeof(float));
 	if(!kernel || !diffKernel)
 		goto error_exit;
+
 
 	/* initialise the Gaussian kernel */
 	for (kwidth = 0; kwidth < kernelWidth; kwidth++) 
@@ -251,7 +260,6 @@ int canny::computeGradients(CANNY *can, float kernelRadius, int kernelWidth)
 
 			can->yGradient[index] = sum;
 		}
-
 	}
 
 	initX = kwidth;
@@ -348,10 +356,10 @@ error_exit:
 		return -1;
 }
 	
-	/*
-	  we follow edges. high gives the parameter for starting an edge,
-	  how the parameter for continuing it.
-	*/
+/*
+  we follow edges. high gives the parameter for starting an edge,
+  how the parameter for continuing it.
+*/
 void canny::performHysteresis(CANNY *can, int low, int high) 
 {
   int offset = 0;
@@ -370,10 +378,9 @@ void canny::performHysteresis(CANNY *can, int low, int high)
   }
 }
  
-	/*
-	  recursive portion of edge follower 
-	*/
-	
+/*
+  recursive portion of edge follower 
+*/	
 void canny::follow(CANNY *can, int x1, int y1, int i1, int threshold) 
 {
   int x, y;
@@ -422,8 +429,10 @@ void canny::normalizeContrast(unsigned char *data, int width, int height)
 }
 
 
-float canny::hypotenuse(float x, float y) 
+float canny::hypotenuse(float x, float y) {
 	return (float) sqrt(x*x +y*y);
+}
  
-float canny::gaussian(float x, float sigma) 
+float canny::gaussian(float x, float sigma) {
 	return (float) exp(-(x * x) / (2.0f * sigma * sigma));
+}

@@ -1,5 +1,6 @@
 #ifndef _CANNY_
 #define _CANNY_
+#define cimg_use_jpeg
 #include "CImg.h"
 #include <vector>
 
@@ -37,7 +38,7 @@ private:
 
 
 public:
-    canny(string);
+    canny(char const*);
     void setLowThreshold(float);
     void setHighThreshold(float);
     void setGaussianKernelRadius(float);
@@ -53,6 +54,7 @@ public:
     float hypotenuse(float, float);
     float gaussian(float, float);
     void showEdgeDetected(unsigned char*);
+    void rgb2bmp();
 };
 
 #endif
