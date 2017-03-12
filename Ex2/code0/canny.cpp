@@ -5,7 +5,6 @@
 
 #include <vector>
 #include "CImg.h"
-#include <iostream>
 #include "canny.h"
 using namespace cimg_library;
 using namespace std;
@@ -26,8 +25,8 @@ canny::canny(const char* const filename) {
 	// set default parameter
 	this->lowThreshold = 2.5f;
     this->highThreshold = 7.5f;
-    this->gaussianKernelRadius = 2.0f;
     this->gaussianKernelWidth = 16;
+    this->gaussianKernelRadius = 2.0f;
     this->contrastNormalised = false;
 }
 
@@ -47,11 +46,15 @@ void canny::setHighThreshold(float highThreshold) {
 	this->highThreshold = highThreshold;
 }
 
+void canny::setGaussianKernelWidth(float gaussianKernelWidth) {
+	this->gaussianKernelWidth = gaussianKernelWidth;
+}
+
 void canny::setGaussianKernelRadius(float gaussianKernelRadius) {
 	this->gaussianKernelRadius = gaussianKernelRadius;
 }
 
-void canny::setContrastNormalised(float contrastNormalised) {
+void canny::setContrastNormalised(bool contrastNormalised) {
 	this->contrastNormalised = contrastNormalised;
 }
 
@@ -65,14 +68,10 @@ void canny::run() {
 	int err;
 	int i;
 
-	allocatebuffers((unsigned char*)(this->img).data());
-
-	cout << "dsafvc " << endl;
+	allocatebuffers();
 
 	if (contrastNormalised) 
-		normalizeContrast(this->data, this->width, this->height);
-
-	cout << "das"<< endl;
+		normalizeContrast();
 
 	if (!computeGradients()) {
 		killbuffers();
@@ -84,7 +83,6 @@ void canny::run() {
 	for (int i = 0; i < this->width * this->height; i ++)
 		this->idata[i] = this->idata[i] > 0 ? 1 : 0;
 	showEdgeDetected();
-	cout << "dsa" <<endl;
 	killbuffers();
 }
 
@@ -92,9 +90,8 @@ void canny::run() {
 /*
   buffer allocation
 */
-void canny::allocatebuffers(unsigned char *grey)
+void canny::allocatebuffers()
 {
-	cout << width << endl << height << endl;
 	this->data = new unsigned char[width * height];
 	this->idata = new int[width * height];
 	this->magnitude = new int[width * height];
@@ -106,7 +103,7 @@ void canny::allocatebuffers(unsigned char *grey)
 		!this->xGradient || !this->yGradient)
 		killbuffers();
 
-	memcpy(this->data, grey, width * height);
+	memcpy(this->data, (this->img).data(), width * height);
 }
 
 
@@ -162,7 +159,6 @@ bool canny::computeGradients()
 	kernel = new float[gaussianKernelWidth];
 	diffKernel = new float[gaussianKernelWidth];
 	if(!kernel || !diffKernel) {
-		cout << "here" << endl;
 		goto error_exit;
 	}
 
@@ -379,7 +375,7 @@ void canny::follow(int x1, int y1, int i1, int threshold)
   }
 }
 
-void canny::normalizeContrast(unsigned char *data, int width, int height) 
+void canny::normalizeContrast() 
 {
 	int histogram[256] = {0};
     int remap[256];

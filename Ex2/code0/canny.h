@@ -25,8 +25,8 @@ private:
     // manual parameter
     float lowThreshold;
     float highThreshold;
-    float gaussianKernelRadius;
     int gaussianKernelWidth;
+    float gaussianKernelRadius;
     bool contrastNormalised;
 
     // fixed parameter
@@ -39,11 +39,12 @@ public:
     canny(char const*);
     void setLowThreshold(float);
     void setHighThreshold(float);
+    void setGaussianKernelWidth(float);
     void setGaussianKernelRadius(float);
-    void setContrastNormalised(float);
+    void setContrastNormalised(bool);
     void run();
-    void allocatebuffers(unsigned char*);
-    void normalizeContrast(unsigned char*, int, int);
+    void allocatebuffers();
+    void normalizeContrast();
     bool computeGradients();
     void performHysteresis();
     void follow(int, int, int, int);
