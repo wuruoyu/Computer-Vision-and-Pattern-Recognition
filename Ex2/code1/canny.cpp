@@ -11,73 +11,35 @@
 #include <cmath>
 #include <vector>
 #include "canny.h"
-#include "opencv2/imgproc/imgproc.hpp"
-#include "opencv2/highgui/highgui.hpp"
+#include "CImg.h"
 
 using namespace std;
-using namespace cv;
+using namespace cimg_library;
 
 
-canny::canny(String filename)
+canny::canny(const char* filename)
 {
-	img = imread(filename);
+	this->img = CImg<unsigned char>(filename);
 	
-	if (!img.data) // Check for invalid input
-	{
-		cout << "Could not open or find the image" << std::endl;
+	vector<vector<double>> filter = createFilter(3, 3, 2);
 
-	}
-	else
-	{
+    this->grayscaled = toGrayScale(); //Grayscale the image
+    this->gFiltered = useFilter(grayscaled, filter); //Gaussian Filter
+    this->sFiltered = sobel(); //Sobel Filter
 
-	vector<vector<double>> filter = createFilter(3, 3, 1);
-
-    //Print filter
-    for (int i = 0; i<filter.size(); i++) 
-    {
-        for (int j = 0; j<filter[i].size(); j++) 
-        {
-            cout << filter[i][j] << " ";
-        }
-    }
-    grayscaled = Mat(img.toGrayScale()); //Grayscale the image
-    gFiltered = Mat(useFilter(grayscaled, filter)); //Gaussian Filter
-    sFiltered = Mat(sobel()); //Sobel Filter
-
-    non = Mat(nonMaxSupp()); //Non-Maxima Suppression
-    thres = Mat(threshold(non, 20, 40)); //Double Threshold and Finalize
+    non = nonMaxSupp(); //Non-Maxima Suppression
+    thres = threshold(non, 20, 40); //Double Threshold and Finalize
 	
-	namedWindow("Original");  
-    namedWindow("GrayScaled");
-    namedWindow("Gaussian Blur");
-    namedWindow("Sobel Filtered");
-    namedWindow("Non-Maxima Supp.");
-    namedWindow("Final");
+	thres.display();
 
-    imshow("Original", img);                  
-    imshow("GrayScaled", grayscaled);
-    imshow("Gaussian Blur", gFiltered);
-    imshow("Sobel Filtered", sFiltered);
-    imshow("Non-Maxima Supp.", non);
-    imshow("Final", thres);
-
-	}
 }
 
-Mat canny::toGrayScale()
+CImg<unsigned char> canny::toGrayScale()
 {
-    grayscaled = Mat(img.rows, img.cols, CV_8UC1); //To one channel
-	for (int i = 0; i < img.rows; i++)
-		for (int j = 0; j < img.cols; j++)
-		{
-			int b = img.at<Vec3b>(i, j)[0];
-			int g = img.at<Vec3b>(i, j)[1];
-			int r = img.at<Vec3b>(i, j)[2];
-
-			double newValue = (r * 0.2126 + g * 0.7152 + b * 0.0722);
-			grayscaled.at<uchar>(i, j) = newValue;
-
-		}
+    grayscaled = CImg<unsigned char>(img.width(), img.height(), 1, 1, 0); //To one channel
+    cimg_forXY(img, x, y) {
+        grayscaled(x, y, 0) = 0.2126 * img(x, y, 0) + 0.7152 * img(x, y, 1) + 0.0722 * img(x, y, 2);
+    };
     return grayscaled;
 }
 
@@ -120,32 +82,31 @@ vector<vector<double>> canny::createFilter(int row, int column, double sigmaIn)
 
 }
 
-Mat canny::useFilter(Mat img_in, vector<vector<double>> filterIn)
+CImg<unsigned char> canny::useFilter(CImg<unsigned char> img_in, vector<vector<double>> filterIn)
 {
     int size = (int)filterIn.size()/2;
-	Mat filteredImg = Mat(img_in.rows - 2*size, img_in.cols - 2*size, CV_8UC1);
-	for (int i = size; i < img_in.rows - size; i++)
+	CImg<unsigned char> filteredImg = CImg<unsigned char>(img_in.width() - 2*size, img_in.height() - 2*size, 1, 1, 0);
+	for (int i = size; i < img_in.width() - size; i++)
 	{
-		for (int j = size; j < img_in.cols - size; j++)
+		for (int j = size; j < img_in.height() - size; j++)
 		{
 			double sum = 0;
             
 			for (int x = 0; x < filterIn.size(); x++)
 				for (int y = 0; y < filterIn.size(); y++)
 				{
-                    sum += filterIn[x][y] * (double)(img_in.at<uchar>(i + x - size, j + y - size));
+                    sum += filterIn[x][y] * (double)(img_in(i + x - size, j + y - size, 0));
 				}
             
-            filteredImg.at<uchar>(i-size, j-size) = sum;
+            filteredImg(i-size, j-size, 0) = sum;
 		}
 
 	}
 	return filteredImg;
 }
 
-Mat canny::sobel()
+CImg<unsigned char> canny::sobel()
 {
-
     //Sobel X Filter
     double x1[] = {-1.0, 0, 1.0};
     double x2[] = {-2.0, 0, 2.0};
@@ -169,13 +130,13 @@ Mat canny::sobel()
     //Limit Size
     int size = (int)xFilter.size()/2;
     
-	Mat filteredImg = Mat(gFiltered.rows - 2*size, gFiltered.cols - 2*size, CV_8UC1);
+	CImg<unsigned char> filteredImg(gFiltered.width() - 2*size, gFiltered.height() - 2*size, 1, 1, 0);
     
-    angles = Mat(gFiltered.rows - 2*size, gFiltered.cols - 2*size, CV_32FC1); //AngleMap
+    angles = CImg<unsigned char>(gFiltered.width() - 2*size, gFiltered.height() - 2*size, 1, 1, 0); //AngleMap
 
-	for (int i = size; i < gFiltered.rows - size; i++)
+	for (int i = size; i < gFiltered.width() - size; i++)
 	{
-		for (int j = size; j < gFiltered.cols - size; j++)
+		for (int j = size; j < gFiltered.height() - size; j++)
 		{
 			double sumx = 0;
             double sumy = 0;
@@ -183,8 +144,8 @@ Mat canny::sobel()
 			for (int x = 0; x < xFilter.size(); x++)
 				for (int y = 0; y < xFilter.size(); y++)
 				{
-                    sumx += xFilter[x][y] * (double)(gFiltered.at<uchar>(i + x - size, j + y - size)); //Sobel_X Filter Value
-                    sumy += yFilter[x][y] * (double)(gFiltered.at<uchar>(i + x - size, j + y - size)); //Sobel_Y Filter Value
+                    sumx += xFilter[x][y] * (double)(gFiltered(i + x - size, j + y - size, 0)); //Sobel_X Filter Value
+                    sumy += yFilter[x][y] * (double)(gFiltered(i + x - size, j + y - size, 0)); //Sobel_Y Filter Value
 				}
             double sumxsq = sumx*sumx;
             double sumysq = sumy*sumy;
@@ -193,12 +154,12 @@ Mat canny::sobel()
             
             if(sq2 > 255) //Unsigned Char Fix
                 sq2 =255;
-            filteredImg.at<uchar>(i-size, j-size) = sq2;
+            filteredImg(i-size, j-size, 0) = sq2;
  
             if(sumx==0) //Arctan Fix
-                angles.at<float>(i-size, j-size) = 90;
+                angles(i-size, j-size, 0) = 90;
             else
-                angles.at<float>(i-size, j-size) = atan(sumy/sumx);
+                angles(i-size, j-size, 0) = atan(sumy/sumx);
 		}
 	}
     
@@ -206,63 +167,63 @@ Mat canny::sobel()
 }
 
 
-Mat canny::nonMaxSupp()
+CImg<unsigned char> canny::nonMaxSupp()
 {
-    Mat nonMaxSupped = Mat(sFiltered.rows-2, sFiltered.cols-2, CV_8UC1);
-    for (int i=1; i< sFiltered.rows - 1; i++) {
-        for (int j=1; j<sFiltered.cols - 1; j++) {
-            float Tangent = angles.at<float>(i,j);
+    CImg<unsigned char> nonMaxSupped(sFiltered.width()-2, sFiltered.height()-2, 1, 1, 0);
+    for (int i=1; i< sFiltered.width() - 1; i++) {
+        for (int j=1; j<sFiltered.height() - 1; j++) {
+            float Tangent = angles(i, j);
 
-            nonMaxSupped.at<uchar>(i-1, j-1) = sFiltered.at<uchar>(i,j);
+            nonMaxSupped(i-1, j-1) = sFiltered(i,j);
             //Horizontal Edge
             if (((-22.5 < Tangent) && (Tangent <= 22.5)) || ((157.5 < Tangent) && (Tangent <= -157.5)))
             {
-                if ((sFiltered.at<uchar>(i,j) < sFiltered.at<uchar>(i,j+1)) || (sFiltered.at<uchar>(i,j) < sFiltered.at<uchar>(i,j-1)))
-                    nonMaxSupped.at<uchar>(i-1, j-1) = 0;
+                if ((sFiltered(i,j) < sFiltered(i,j+1)) || (sFiltered(i,j) < sFiltered(i,j-1)))
+                    nonMaxSupped(i-1, j-1) = 0;
             }
             //Vertical Edge
             if (((-112.5 < Tangent) && (Tangent <= -67.5)) || ((67.5 < Tangent) && (Tangent <= 112.5)))
             {
-                if ((sFiltered.at<uchar>(i,j) < sFiltered.at<uchar>(i+1,j)) || (sFiltered.at<uchar>(i,j) < sFiltered.at<uchar>(i-1,j)))
-                    nonMaxSupped.at<uchar>(i-1, j-1) = 0;
+                if ((sFiltered(i,j) < sFiltered(i+1,j)) || (sFiltered(i,j) < sFiltered(i-1,j)))
+                    nonMaxSupped(i-1, j-1) = 0;
             }
             
             //-45 Degree Edge
             if (((-67.5 < Tangent) && (Tangent <= -22.5)) || ((112.5 < Tangent) && (Tangent <= 157.5)))
             {
-                if ((sFiltered.at<uchar>(i,j) < sFiltered.at<uchar>(i-1,j+1)) || (sFiltered.at<uchar>(i,j) < sFiltered.at<uchar>(i+1,j-1)))
-                    nonMaxSupped.at<uchar>(i-1, j-1) = 0;
+                if ((sFiltered(i,j) < sFiltered(i-1,j+1)) || (sFiltered(i,j) < sFiltered(i+1,j-1)))
+                    nonMaxSupped(i-1, j-1) = 0;
             }
             
             //45 Degree Edge
             if (((-157.5 < Tangent) && (Tangent <= -112.5)) || ((22.5 < Tangent) && (Tangent <= 67.5)))
             {
-                if ((sFiltered.at<uchar>(i,j) < sFiltered.at<uchar>(i+1,j+1)) || (sFiltered.at<uchar>(i,j) < sFiltered.at<uchar>(i-1,j-1)))
-                    nonMaxSupped.at<uchar>(i-1, j-1) = 0;
+                if ((sFiltered(i,j) < sFiltered(i+1,j+1)) || (sFiltered(i,j) < sFiltered(i-1,j-1)))
+                    nonMaxSupped(i-1, j-1) = 0;
             }
         }
     }
     return nonMaxSupped;
 }
 
-Mat canny::threshold(Mat imgin,int low, int high)
+CImg<unsigned char> canny::threshold(CImg<unsigned char> imgin,int low, int high)
 {
     if(low > 255)
         low = 255;
     if(high > 255)
         high = 255;
     
-    Mat EdgeMat = Mat(imgin.rows, imgin.cols, imgin.type());
+    CImg<unsigned char> EdgeMat(imgin.width(), imgin.height(), 1, 1, 0);
     
-    for (int i=0; i<imgin.rows; i++) 
+    for (int i=0; i<imgin.width(); i++) 
     {
-        for (int j = 0; j<imgin.cols; j++) 
+        for (int j = 0; j<imgin.height(); j++) 
         {
-            EdgeMat.at<uchar>(i,j) = imgin.at<uchar>(i,j);
-            if(EdgeMat.at<uchar>(i,j) > high)
-                EdgeMat.at<uchar>(i,j) = 255;
-            else if(EdgeMat.at<uchar>(i,j) < low)
-                EdgeMat.at<uchar>(i,j) = 0;
+            EdgeMat(i,j, 0) = imgin(i,j,0);
+            if(EdgeMat(i,j,0) > high)
+                EdgeMat(i,j,0) = 255;
+            else if(EdgeMat(i,j,0) < low)
+                EdgeMat(i,j,0) = 0;
             else
             {
                 bool anyHigh = false;
@@ -271,17 +232,17 @@ Mat canny::threshold(Mat imgin,int low, int high)
                 {
                     for (int y = j-1; y<j+2; y++) 
                     {
-                        if(x <= 0 || y <= 0 || EdgeMat.rows || y > EdgeMat.cols) //Out of bounds
+                        if(x <= 0 || y <= 0 || EdgeMat.width() || y > EdgeMat.height()) //Out of bounds
                             continue;
                         else
                         {
-                            if(EdgeMat.at<uchar>(x,y) > high)
+                            if(EdgeMat(x,y,0) > high)
                             {
-                                EdgeMat.at<uchar>(i,j) = 255;
+                                EdgeMat(i,j,0) = 255;
                                 anyHigh = true;
                                 break;
                             }
-                            else if(EdgeMat.at<uchar>(x,y) <= high && EdgeMat.at<uchar>(x,y) >= low)
+                            else if(EdgeMat(x,y,0) <= high && EdgeMat(x,y,0) >= low)
                                 anyBetween = true;
                         }
                     }
@@ -293,13 +254,13 @@ Mat canny::threshold(Mat imgin,int low, int high)
                     {
                         for (int y = j-1; y<j+3; y++) 
                         {
-                            if(x < 0 || y < 0 || x > EdgeMat.rows || y > EdgeMat.cols) //Out of bounds
+                            if(x < 0 || y < 0 || x > EdgeMat.width() || y > EdgeMat.height()) //Out of bounds
                                 continue;
                             else
                             {
-                                if(EdgeMat.at<uchar>(x,y) > high)
+                                if(EdgeMat(x,y,0) > high)
                                 {
-                                    EdgeMat.at<uchar>(i,j) = 255;
+                                    EdgeMat(i,j,0) = 255;
                                     anyHigh = true;
                                     break;
                                 }
@@ -309,7 +270,7 @@ Mat canny::threshold(Mat imgin,int low, int high)
                             break;
                     }
                 if(!anyHigh)
-                    EdgeMat.at<uchar>(i,j) = 0;
+                    EdgeMat(i,j,0) = 0;
             }
         }
     }

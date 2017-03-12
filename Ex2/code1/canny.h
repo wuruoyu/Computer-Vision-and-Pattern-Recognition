@@ -8,31 +8,30 @@
 
 #ifndef _CANNY_
 #define _CANNY_
-#include "opencv2/imgproc/imgproc.hpp"
-#include "opencv2/highgui/highgui.hpp"
 #include <vector>
+#include "CImg.h"
 
 using namespace std;
-using namespace cv;
+using namespace cimg_library;
 
 class canny {
 private:
-    Mat img; //Original Image
-    Mat grayscaled; // Grayscale
-    Mat gFiltered; // Gradient
-    Mat sFiltered; //Sobel Filtered
-    Mat angles; //Angle Map
-    Mat non; // Non-maxima supp.
-    Mat thres; //Double threshold and final
+    CImg<unsigned char> img; //Original Image
+    CImg<unsigned char> grayscaled; // Grayscale
+    CImg<unsigned char> gFiltered; // Gradient
+    CImg<unsigned char> sFiltered; //Sobel Filtered
+    CImg<unsigned char> angles; //Angle Map
+    CImg<unsigned char> non; // Non-maxima supp.
+    CImg<unsigned char> thres; //Double threshold and final
 public:
 
-    canny(String); //Constructor
-	Mat toGrayScale();
+    canny(const char*); //Constructor
+	CImg<unsigned char> toGrayScale();
 	vector<vector<double>> createFilter(int, int, double); //Creates a gaussian filter
-	Mat useFilter(Mat, vector<vector<double>>); //Use some filter
-    Mat sobel(); //Sobel filtering
-    Mat nonMaxSupp(); //Non-maxima supp.
-    Mat threshold(Mat, int, int); //Double threshold and finalize picture
+	CImg<unsigned char> useFilter(CImg<unsigned char>, vector<vector<double>>); //Use some filter
+    CImg<unsigned char> sobel(); //Sobel filtering
+    CImg<unsigned char> nonMaxSupp(); //Non-maxima supp.
+    CImg<unsigned char> threshold(CImg<unsigned char>, int, int); //Double threshold and finalize picture
 };
 
 #endif
