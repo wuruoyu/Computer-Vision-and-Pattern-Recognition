@@ -41,8 +41,13 @@ public:
 
     static CImg<unsigned char> colorTransfer(CImg<unsigned char> source, CImg<unsigned char>& target) {
         // convert rgb space to lab space
+        source.RGBtoLab().LabtoRGB();
+        target.RGBtoLab();
+
+        source.display();
+
         source.LabtoRGB();
-        target.LabtoRGB();
+        source.display();
 
         // get stats from source image and 
         std::array<double, 3> sourceMean = imageSet::getMean(source);
@@ -61,10 +66,10 @@ public:
             }
         };
 
-        source.RGBtoLab();
+        source.LabtoRGB();
         return source;
     }
-}
+};
 
 // color interface
 class colorSet {
@@ -110,8 +115,8 @@ public:
 
 
 int main(int argc, char* argv[]) {
-    CImg<unsigned char> source("../image/vancouver.jpeg");
-    CImg<unsigned char> target("../image/vancouver.jpeg");
+    CImg<unsigned char> source("../image/lena.jpg");
+    CImg<unsigned char> target("../image/Montreal.jpeg");
     CImg<unsigned char> transfered = imageSet::colorTransfer(source, target);
     transfered.display();
 }
