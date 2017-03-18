@@ -7,12 +7,18 @@ using namespace cimg_library;
 
 class imageSet {
 public:
-    static void rgb2grey(CImg<unsigned char>& img) {
+    static CImg<unsigned char> rgb2grey(CImg<double>& img) {
         CImg<unsigned char> imgTemp(img.width(), img.height(), 1, 1, 0);
-        cimg_forXY(img, x, y) {
-            imgTemp(x, y, 0) = 0.299 * img(x, y, 0) + 0.587 * img(x, y, 1) + 0.144 * img(x, y, 2);
-        };
-        img = imgTemp;
+        if (img.spectrum() == 3) {
+            cimg_forXY(img, x, y) {
+                std::cout << img(x, y, 0) << std::endl;
+                imgTemp(x, y, 0) = 0.299 * img(x, y, 0) + 0.587 * img(x, y, 1) + 0.144 * img(x, y, 2);
+            };
+        }
+        else {
+            std::cout << "Not a rgb image" << std::endl;
+        }
+        return imgTemp;
     }
 
     static std::array<double, 3> getMean(CImg<double>& img) {
@@ -27,7 +33,7 @@ public:
     }
 
     static std::array<double, 3> getVariance(CImg<double>& img) {
-        std::array<double, 3> variance = {0, 0, 0};
+        std::array<double, 3> variance = {0, 0, 0}; 
         std::array<double, 3> mean = imageSet::getMean(img);
         cimg_forXY(img, x, y) {
             for (int channel = 0; channel < 3; channel ++)

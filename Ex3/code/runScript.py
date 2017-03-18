@@ -3,10 +3,12 @@ import subprocess
 
 
 def main():
-	for imageName in os.listdir("../image/"):
+	sourceImagePath = "../MonoImage/"
+	targetImagePath = "../MonoEqualizedImage/"
+	for imageName in os.listdir(sourceImagePath):
 		args = ['./Ex3']
-		args.append("../image/" + imageName)
-		args.append("../equalizedImage/"+imageName)
+		args.append(sourceImagePath + imageName)
+		args.append(targetImagePath + imageName)
 		subprocess.call(args)
 
 
