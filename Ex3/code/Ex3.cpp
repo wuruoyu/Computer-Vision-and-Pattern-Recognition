@@ -3,72 +3,100 @@
 #include "CImg.h"
 using namespace cimg_library;
 
+template <class T>
+class imageUtil {
+private:
+    CImg<T> img;
 
-class imageSet {
 public:
-    static void rgb2grey(CImg<unsigned char>& img) {
-        CImg<unsigned char> imgTemp(img.width(), img.height(), 1, 1, 0);
-        cimg_forXY(img, x, y) {
-            imgTemp(x, y, 0) = 0.299 * img(x, y, 0) + 0.587 * img(x, y, 1) + 0.144 * img(x, y, 2);
-        };
-        img = imgTemp;
+    imageUtil(const char* filepath) {
+        this->img.load_jpg(filepath);
     }
 
-    static std::array<double, 3> getMean(CImg<unsigned char>& img) {
+    void rgb2grey() {
+        CImg<unsigned char> imgTemp(this->img.width(), this->img.height(), 1, 1, 0);
+        cimg_forXY(this->img, x, y) {
+            imgTemp(x, y, 0) = 0.299 * this->img(x, y, 0) + 0.587 * this->img(x, y, 1) + 0.144 * this->img(x, y, 2);
+        };
+        this->img = imgTemp;
+    }
+
+    std::array<double, 3> getMean() {
         std::array<double, 3> mean = {0, 0, 0};
-        cimg_forXY(img, x, y) {
+        cimg_forXY(this->img, x, y) {
             for (int channel = 0; channel < 3; channel ++)
-                mean[channel] += img(x, y, channel);
+                mean[channel] += this->img(x, y, channel);
         };
         for (int channel = 0; channel < 3; channel ++)
-            mean[channel] /= (img.width() * img.height());
+            mean[channel] /= (this->img.width() * this->img.height());
         return mean;
     }
 
-    static std::array<double, 3> getVariance(CImg<unsigned char>& img) {
+    std::array<double, 3> getVariance() {
         std::array<double, 3> variance = {0, 0, 0};
-        std::array<double, 3> mean = imageSet::getMean(img);
-        cimg_forXY(img, x, y) {
+        std::array<double, 3> mean = this->img.getMean();
+        cimg_forXY(this->img, x, y) {
             for (int channel = 0; channel < 3; channel ++)
-                variance[channel] += std::pow((img(x, y, channel) - mean[channel]), 2);
+                variance[channel] += std::pow((this->img(x, y, channel) - mean[channel]), 2);
         };
         for (int channel = 0; channel < 3; channel ++) {
-            variance[channel] /= (img.width() * img.height());
+            variance[channel] /= (this->img.width() * this->img.height());
             variance[channel] = std::pow(variance[channel], 1/2);
         }
         return variance;
     }
 
-    static CImg<unsigned char> colorTransfer(CImg<unsigned char> source, CImg<unsigned char>& target) {
+    CImg<T> colorTransfer(CImg<T> source) {
+        CImg<T> target = this->img;
+
         // convert rgb space to lab space
-        source.RGBtoLab().LabtoRGB();
+        source.RGBtoLab();
         target.RGBtoLab();
 
-        source.display();
-
-        source.LabtoRGB();
-        source.display();
-
         // get stats from source image and 
-        std::array<double, 3> sourceMean = imageSet::getMean(source);
-        std::array<double, 3> sourceVariance = imageSet::getVariance(source);
-        std::array<double, 3> targetMean = imageSet::getMean(target);
-        std::array<double, 3> targetVariance = imageSet::getVariance(target);
+        std::array<double, 3> sourceMean = getMean(source);
+        std::array<double, 3> sourceVariance = imageUtil::getVariance(source);
+        std::array<double, 3> targetMean = imageUtil::getMean(target);
+        std::array<double, 3> targetVariance = imageUtil::getVariance(target);
 
-        cimg_forXY(source, x, y) {
+        cimg_forXY(target, x, y) {
             for (int channel = 0; channel < 3; channel ++) {
                 // substract mean value from source
-                source(x, y, channel) -= sourceMean[channel];
+                target(x, y, channel) -= targetMean[channel];
                 // scale
-                source(x, y, channel) *= (sourceVariance[channel] / targetVariance[channel]);
+                target(x, y, channel) *= (targetVariance[channel] / sourceVariance[channel]);
                 // add the mean value from target
-                source(x, y, channel) += targetMean[channel];
+                target(x, y, channel) += sourceMean[channel];
             }
         };
 
-        source.LabtoRGB();
-        return source;
+        target.LabtoRGB();
+        return target
     }
+
+    std::array<int, 256> getHistogram(int channel = 0) {
+        std::array<int, 256> histogram = {0};
+        cimg_forXY(this->img, x, y) {
+            histogram[img(x, y, channel)] ++;
+        };
+        return histogram;
+    }
+
+    CImg<T>& equalize() {
+        for (int channel = 0; channel < this->img.spectrum(); channel ++) {
+            std::array<int, 256> histogram = this->img.getHistogram(channel);
+            unsigned long cumulated = 0;
+            for (int index = 0; index < 256; index ++) {
+                cumulated += histogram[index];
+                histogram[index] = cumulated;
+            }
+            cimg_forXY(this->img, x, y) {
+                this->img(x, y, channel) = 
+                    (T)(255 * histogram[this->img(x, y, channel)/cumulated]);
+            };
+        }
+    }
+
 };
 
 // color interface
@@ -115,8 +143,8 @@ public:
 
 
 int main(int argc, char* argv[]) {
-    CImg<unsigned char> source("../image/lena.jpg");
-    CImg<unsigned char> target("../image/Montreal.jpeg");
-    CImg<unsigned char> transfered = imageSet::colorTransfer(source, target);
+    CImg<double> source("../image/lena.jpg");
+    imageUtil<double> target("../image/Montreal.jpeg");
+    CImg<double> transfered = target.colorTransfer(source);
     transfered.display();
 }
