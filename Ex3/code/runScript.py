@@ -3,8 +3,8 @@ import subprocess
 
 
 def main():
-	sourceImagePath = "../MonoImage/"
-	targetImagePath = "../MonoEqualizedImage/"
+	sourceImagePath = "../image/"
+	targetImagePath = "../equalizedImage/"
 	for imageName in os.listdir(sourceImagePath):
 		args = ['./Ex3']
 		args.append(sourceImagePath + imageName)
