@@ -134,8 +134,8 @@ public:
 
 
 int main(int argc, char* argv[]) {
-    CImg<double> source("../image/lena.jpg");
-    imageSet::equalize(source).display();
+    CImg<double> source(argv[1]);
+    imageSet::equalize(source).save(argv[2]);
 
     /*
     CImg<double> target("../image/Montreal.jpeg");
