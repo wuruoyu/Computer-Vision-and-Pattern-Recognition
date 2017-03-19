@@ -3,12 +3,14 @@ import subprocess
 
 
 def main():
-	sourceImagePath = "../image/"
-	targetImagePath = "../equalizedImage/"
-	for imageName in os.listdir(sourceImagePath):
+	sourceImagePath = "../transferSource/Starry night.jpg"
+	targetImagePath = "../image/"
+	outputImagePath = "../transferImage/"
+	for imageName in os.listdir(targetImagePath):
 		args = ['./Ex3']
-		args.append(sourceImagePath + imageName)
+		args.append(sourceImagePath)
 		args.append(targetImagePath + imageName)
+		args.append(outputImagePath + imageName)
 		subprocess.call(args)
 
 

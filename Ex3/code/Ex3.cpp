@@ -90,6 +90,8 @@ public:
             }
             cimg_forXY(img, x, y) {
                 img(x, y, channel) = (255 * histogram[img(x, y, channel)]/(double)cumulated);
+                if (img(x, y, channel) > 255)
+                    img(x, y, channel) = 255;
             };
         }
         return img;
@@ -141,11 +143,9 @@ public:
 
 int main(int argc, char* argv[]) {
     CImg<double> source(argv[1]);
-    imageSet::equalize(source).save(argv[2]);
+    CImg<double> target(argv[2]);
+    //imageSet::equalize(source).save(argv[2]);
 
-    /*
-    CImg<double> target("../image/Montreal.jpeg");
     CImg<double> transfered = imageSet::colorTransfer(source, target);
-    transfered.display();
-    */
+    transfered.save(argv[3]);
 }
