@@ -90,10 +90,26 @@ public:
             }
             cimg_forXY(img, x, y) {
                 img(x, y, channel) = (255 * histogram[img(x, y, channel)]/(double)cumulated);
-                if (img(x, y, channel) > 255)
-                    img(x, y, channel) = 255;
             };
         }
+        return img;
+    }
+
+    static CImg<double>& LabEqualize(CImg<double>& img) {
+        img.RGBtoLab();
+        std::array<int, 101> histogram = {0};
+        cimg_forXY(img, x, y) {
+            histogram[(int)img(x, y, 0)] ++;
+        };
+        unsigned long cumulated = 0;
+        for (int index = 0; index < 101; index ++) {
+            cumulated += histogram[index];
+            histogram[index] = cumulated;
+        }
+        cimg_forXY(img, x, y) {
+            img(x, y, 0) = 100 * histogram[int(img(x, y, 0))]/(double)cumulated;
+        };
+        img.LabtoRGB();
         return img;
     }
 };
@@ -144,7 +160,7 @@ public:
 int main(int argc, char* argv[]) {
     CImg<double> source(argv[1]);
     CImg<double> target(argv[2]);
-    //imageSet::equalize(source).save(argv[2]);
+    //imageSet::LabEqualize(source).save(argv[2]);
 
     CImg<double> transfered = imageSet::colorTransfer(source, target);
     transfered.save(argv[3]);
