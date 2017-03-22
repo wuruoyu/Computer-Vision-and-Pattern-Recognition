@@ -36,7 +36,7 @@ private:
 
 
 public:
-    canny(char const*);
+    canny(CImg<unsigned char>);
     void setLowThreshold(float);
     void setHighThreshold(float);
     void setGaussianKernelWidth(float);
@@ -51,7 +51,7 @@ public:
     float hypotenuse(float, float);
     float gaussian(float, float);
     void showEdgeDetected();
-    void rgb2bmp();
+    void rgb2gray();
     float ffabs(int);
     void killbuffers();
 };

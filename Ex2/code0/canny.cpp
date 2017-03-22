@@ -13,10 +13,10 @@ float canny::ffabs(int x) {
 	return x >= 0 ? x : -x;
 }
 
-canny::canny(const char* const filename) {
+canny::canny(CImg<unsigned char> img) {
 	// import image
-	this->img = CImg<unsigned char>(filename);
-	rgb2bmp();
+	this->img = img;
+	rgb2gray();
 
 	// set image parameters
 	this->width = this->img.width();
@@ -30,7 +30,7 @@ canny::canny(const char* const filename) {
     this->contrastNormalised = false;
 }
 
-void canny::rgb2bmp() {
+void canny::rgb2gray() {
 	CImg<unsigned char> imgTemp((this->img).width(), (this->img).height(), 1, 1, 0);
 	cimg_forXY(this->img, x, y) {
 		imgTemp(x, y, 0) = 0.299 * this->img(x, y, 0) + 0.587 * this->img(x, y, 1) + 0.144 * this->img(x, y, 2);
