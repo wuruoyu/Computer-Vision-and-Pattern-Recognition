@@ -2,6 +2,8 @@
 #include <cmath>
 #include <iostream>
 #include <cmath>
+#include <vector>
+#include <queue>
 #include "CImg.h"
 #include "canny.h"
 using namespace cimg_library;
@@ -26,28 +28,47 @@ public:
         this->img = edgeImg.getEdge();
     }
 
-    // x-axis as theta and y-axis as rho theta in (0, max{width, height}/2), rho in (0, 2*PI)
+    // x-axis as theta and y-axis as rho theta in (0, max{width, height} * pow(2, 0.5)), 
+    // rho in (0, 2*PI)
     // x * cos(theta) + y * sin(theta) = rho
     void gray2Hough() {
         // initialize the hough space
         houghSpace.resize(thetaGridWidth);
-        rhoGridWidth = max((img.width(), img.height()) / double(2)) + 1;
-        for (int thetaGrid = 0; thetaGrid < thetaGridWidth; thetaGrid ++) {
+        rhoGridWidth = int(max(img.width(), img.height()) * std::pow(2, 0.5)) + 1;
+        for (int thetaGrid = 0; thetaGrid < houghSpace.size(); thetaGrid ++) {
             houghSpace[thetaGrid].resize(rhoGridWidth);
         }
 
         // NOT SURE: the returned thres has value 0 or 255
         cimg_forXY(img, x, y) {
             if (img(x, y) == 255) {
-                for (int thetaGrid = 0; thetaGrid < thetaGridWidth; thetaGrid ++) {
-                    rho = 
+                for (int thetaGrid = 0; thetaGrid < houghSpace.size(); thetaGrid ++) {
+                    houghSpace[thetaGrid][int(std::cos(thetaGrid) * x + std::sin(thetaGrid) * y)] ++;
                 }
             }
         };
     }
 
-    void findMax() {
+    void insertQueue(std::vector<int>& queue, int toInsert) {
+        std::vector<int>::iterator iter;
+        for (iter = queue.begin(); iter < queue.end(); iter ++) {
+            if (toInsert < *iter) {
+                *(iter - 1) = toInsert;
 
+                break;
+            }
+
+        }
+    }
+
+    // In this version, we follow a naive method: find the biggest 4 grid
+    void findMax() {
+        std::vector<int> maxQueue = {0, 0, 0, 0};
+        for (int thetaGrid = 0; thetaGrid < houghSpace.size(); thetaGrid ++) {
+            for (int rhoGrid = 0; rhoGrid < houghSpace[thetaGrid].size(); rhoGrid ++) {
+                if 
+            }
+        }
     }
 
     void hough2gray() {
