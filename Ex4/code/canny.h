@@ -1,38 +1,62 @@
-//
-//  canny.h
-//  Canny Edge Detector
-//
-//  Created by Hasan Akgün on 21/03/14.
-//  Copyright (c) 2014 Hasan Akgün. All rights reserved.
-//
-
 #ifndef _CANNY_
 #define _CANNY_
-#include <vector>
+#define cimg_use_jpeg                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
 #include "CImg.h"
+#include <vector>
 
 using namespace std;
 using namespace cimg_library;
 
-class canny {
+class canny {   
 private:
-    CImg<unsigned char> img; //Original Image
-    CImg<unsigned char> grayscaled; // Grayscale
-    CImg<unsigned char> gFiltered; // Gradient
-    CImg<unsigned char> sFiltered; //Sobel Filtered
-    CImg<unsigned char> angles; //Angle Map
-    CImg<unsigned char> non; // Non-maxima supp.
-    CImg<unsigned char> thres; //Double threshold and final
+    CImg<unsigned char> colorImg;
+    CImg<unsigned char> img; // Original Image
+    CImg<unsigned char> edge; // image after edge detected
+    int width;
+    int height;
+
+    unsigned char *data; /* input image */
+    int *idata;          /* output for edges */
+    int *magnitude;      /* edge magnitude as detected by Gaussians */
+    float *xConv;        /* temporary for convolution in x direction */
+    float *yConv;        /* temporary for convolution in y direction */
+    float *xGradient;    /* gradients in x direction, as detected by Gaussians */
+    float *yGradient;    /* gradients in y direction, as detected by Gaussians */
+
+    // manual parameter
+    float lowThreshold;
+    float highThreshold;
+    int gaussianKernelWidth;
+    float gaussianKernelRadius;
+    bool contrastNormalised;
+
+    // fixed parameter
+    const float gaussianCutOff = 0.005f;
+    const float magnitudeScale = 100.0f;
+    const float magnitudeLimit = 1000.f;
+
+
 public:
-    canny(CImg<unsigned char>, int, int, int, int, int); //Constructor
-	CImg<unsigned char> toGrayScale();
-	vector<vector<double>> createFilter(int, int, double); //Creates a gaussian filter
-	CImg<unsigned char> useFilter(CImg<unsigned char>, vector<vector<double>>); //Use some filter
-    CImg<unsigned char> sobel(); //Sobel filtering
-    CImg<unsigned char> nonMaxSupp(); //Non-maxima supp.
-    CImg<unsigned char> threshold(CImg<unsigned char>, int, int); //Double threshold and finalize picture
-    CImg<unsigned char> getEdge();
+    canny(CImg<unsigned char>);
+    void setLowThreshold(float);
+    void setHighThreshold(float);
+    void setGaussianKernelWidth(float);
+    void setGaussianKernelRadius(float);
+    void setContrastNormalised(bool);
+    void run();
+    void allocatebuffers();
+    void normalizeContrast();
+    bool computeGradients();
+    void performHysteresis();
+    void follow(int, int, int, int);
+    float hypotenuse(float, float);
+    float gaussian(float, float);
+    void showEdgeDetected();
+    void rgb2gray();
+    float ffabs(int);
+    void killbuffers();
     CImg<unsigned char> getImg();
+    CImg<unsigned char> getEdge();
 };
 
 #endif

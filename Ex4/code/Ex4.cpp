@@ -48,12 +48,12 @@ private:
 public:
     houghDetector(canny& cannySource) {
         img = cannySource.getImg();
-        this->edgeImg = cannySource.getEdge();
+        edgeImg = cannySource.getEdge();
         rhoGridWidth = std::pow((std::pow(edgeImg.width(), 2) + std::pow(edgeImg.height(), 2)), 0.5);
         houghSpace = CImg<double>(360, rhoGridWidth, 1, 1, 0);
-        thetaFilterWidth = 10;
-        rhoFilterWidth = 150;
-        verticalThreshold = 0.05;
+        thetaFilterWidth = 20;
+        rhoFilterWidth = 300;
+        verticalThreshold = 0.2;
     }
 
     CImg<unsigned char> getEdgeImg() {
@@ -68,7 +68,7 @@ public:
 
     void gray2Hough() {
         cimg_forXY(edgeImg, x, y) {
-            if (edgeImg(x, y) == 255) {
+            if (edgeImg(x, y) == 1) {
                 cimg_forX(houghSpace, theta) {
                     double rTheta = (double)theta * 3.14 / 180.0;
                     int rho = (int)(x * cos(rTheta) + y * sin(rTheta));
@@ -151,47 +151,36 @@ public:
 
             const int color[] = {0, 0, 255};
 
-            std::vector<std::pair<double, double>> crossPoint;
+            std::vector<std::pair<int, int>> crossPoint;
 
             if (line[i].a == 0) {
-                crossPoint.push_back(std::pair<double, double>(minX, -line[i].c / line[i].b));
-                crossPoint.push_back(std::pair<double, double>(maxX, -line[i].c / line[i].b));
+                crossPoint.push_back(std::pair<int, int>(minX, -line[i].c / line[i].b));
+                crossPoint.push_back(std::pair<int, int>(maxX, -line[i].c / line[i].b));
             }
             else if (line[i].b == 0) {
-                crossPoint.push_back(std::pair<double, double>(-line[i].c / line[i].a, minY));
-                crossPoint.push_back(std::pair<double, double>(-line[i].c / line[i].a, maxY));
+                crossPoint.push_back(std::pair<int, int>(-line[i].c / line[i].a, minY));
+                crossPoint.push_back(std::pair<int, int>(-line[i].c / line[i].a, maxY));
             }
             else {
                 if (- line[i].c / line[i].b > minY && - line[i].c / line[i].b < maxY)
-                    crossPoint.push_back(std::pair<double, double>(0, - line[i].c / line[i].b));
+                    crossPoint.push_back(std::pair<int, int>(0, - line[i].c / line[i].b));
                 if (- line[i].a / line[i].b * maxX - line[i].c / line[i].b > minY && - line[i].a / line[i].b * maxX - line[i].c / line[i].b < maxY)
-                    crossPoint.push_back(std::pair<double, double>(maxX, - line[i].a / line[i].b * maxX - line[i].c / line[i].b));
+                    crossPoint.push_back(std::pair<int, int>(maxX, - line[i].a / line[i].b * maxX - line[i].c / line[i].b));
                 if (- line[i].c / line[i].a > minX && - line[i].c / line[i].a < maxX)
-                    crossPoint.push_back(std::pair<double, double>(- line[i].c / line[i].a, 0));
+                    crossPoint.push_back(std::pair<int, int>(- line[i].c / line[i].a, 0));
                 if (- line[i].b / line[i].a * maxY - line[i].c / line[i].a > minX && - line[i].b / line[i].a * maxY - line[i].c / line[i].a < maxX)
-                    crossPoint.push_back(std::pair<double, double>(- line[i].b / line[i].a * maxY - line[i].c / line[i].a, maxY));
+                    crossPoint.push_back(std::pair<int, int>(- line[i].b / line[i].a * maxY - line[i].c / line[i].a, maxY));
             }
 
+            cout << "line " << crossPoint[0].first << " " << crossPoint[0].second << " " << crossPoint[1].first << " " << crossPoint[1].second << endl;
             result.draw_line(crossPoint[0].first, crossPoint[0].second, crossPoint[1].first, crossPoint[1].second, color);
         }
     }
 
     bool ifVertical(Line& line1, Line& line2) {
-        if (line1.a== 0) {
-            if (line2.b == 0)
-                return true;
-            return false;
-        }
-        else if (line2.a == 0) {
-            if (line1.b == 0)
-                return true;
-            return false;
-        }
-        else {
-            if (abs(line1.a * line1.b + line2.a * line2.b) < verticalThreshold)
-                return true;
-            return false;
-        }
+        if (abs(line1.a * line2.a + line1.b * line2.b) < verticalThreshold)
+            return true;
+        return false;
     }
 
     void drawIntersection(CImg<double>& result, std::vector<Line> line) {
@@ -203,12 +192,15 @@ public:
         const int maxX = result.width() - 1;
 
         for (int i = 0; i < line.size(); i ++) {
-            for (int j = i; j < line.size(); j ++) {
+            for (int j = i + 1; j < line.size(); j ++) {
                 if (ifVertical(line[i], line[j])) {
+                    cout << "yes!" << endl;
                     int y = (line[2].a * line[1].c - line[1].a * line[2].c) / (line[1].a * line[2].b - line[2].a * line[1].b);
                     int x = -(line[1].b / line[1].a) * y - line[1].c / line[1].a;
-                    if (x > minX && x < maxX && y > minY && y < maxY)
-                        result.draw_circle(x, y, 5, color);
+                    if (x > minX && x < maxX && y > minY && y < maxY) {
+                        result.draw_circle(x, y, 50, color);
+                        cout << "intersection: " << x << " " << y << endl;
+                    }
                 }
             }
         }
@@ -239,15 +231,17 @@ public:
 
 
 int main(int argc, char* argv[]) {
-    CImg<double> source(argv[1]);
-    int width = atoi(argv[2]);
-    int height = atoi(argv[3]);
-    int sigma = atoi(argv[4]);
-    int low = atoi(argv[5]);
-    int high = atoi(argv[6]);
+    CImg<double> source(argv[1]);    
 
+    canny cannySource(source);
+    cannySource.setLowThreshold(atoi(argv[2]));
+    cannySource.setHighThreshold(atoi(argv[3]));
+    cannySource.setGaussianKernelWidth(atoi(argv[4]));
+    cannySource.setGaussianKernelRadius(atoi(argv[5]));
 
-    canny cannySource(source, low, high);
+    cannySource.run();
+    cannySource.showEdgeDetected();
+
     houghDetector sourceEdge(cannySource);
     sourceEdge.detect();
 }
