@@ -43,7 +43,7 @@ private:
     int rhoGridWidth;
     int thetaFilterWidth;
     int rhoFilterWidth;
-    int verticalThreshold;
+    double verticalThreshold;
 
 public:
     houghDetector(canny& cannySource) {
@@ -51,9 +51,9 @@ public:
         edgeImg = cannySource.getEdge();
         rhoGridWidth = std::pow((std::pow(edgeImg.width(), 2) + std::pow(edgeImg.height(), 2)), 0.5);
         houghSpace = CImg<double>(360, rhoGridWidth, 1, 1, 0);
-        thetaFilterWidth = 20;
-        rhoFilterWidth = 300;
-        verticalThreshold = 0.2;
+        thetaFilterWidth = 30;
+        rhoFilterWidth = 450;
+        verticalThreshold = 0.1;
     }
 
     CImg<unsigned char> getEdgeImg() {
@@ -149,7 +149,7 @@ public:
             const int minX = 0;
             const int maxX = result.width() - 1;
 
-            const int color[] = {0, 0, 255};
+            const int color[] = {0, 255, 255};
 
             std::vector<std::pair<int, int>> crossPoint;
 
@@ -171,15 +171,14 @@ public:
                 if (- line[i].b / line[i].a * maxY - line[i].c / line[i].a > minX && - line[i].b / line[i].a * maxY - line[i].c / line[i].a < maxX)
                     crossPoint.push_back(std::pair<int, int>(- line[i].b / line[i].a * maxY - line[i].c / line[i].a, maxY));
             }
-
-            cout << "line " << crossPoint[0].first << " " << crossPoint[0].second << " " << crossPoint[1].first << " " << crossPoint[1].second << endl;
             result.draw_line(crossPoint[0].first, crossPoint[0].second, crossPoint[1].first, crossPoint[1].second, color);
         }
     }
 
     bool ifVertical(Line& line1, Line& line2) {
-        if (abs(line1.a * line2.a + line1.b * line2.b) < verticalThreshold)
+        if (abs(line1.a * line2.a + line1.b * line2.b) < verticalThreshold) {
             return true;
+        }
         return false;
     }
 
@@ -194,12 +193,14 @@ public:
         for (int i = 0; i < line.size(); i ++) {
             for (int j = i + 1; j < line.size(); j ++) {
                 if (ifVertical(line[i], line[j])) {
-                    cout << "yes!" << endl;
-                    int y = (line[2].a * line[1].c - line[1].a * line[2].c) / (line[1].a * line[2].b - line[2].a * line[1].b);
-                    int x = -(line[1].b / line[1].a) * y - line[1].c / line[1].a;
+                    int x = (-line[j].b * line[i].c + line[i].b * line[j].c) / (-line[j].a * line[i].b + line[i].a * line[j].b);
+                    int y = 0;
+                    if (line[i].b != 0)
+                        y = - line[i].a / line[i].b * x - line[i].c / line[i].b;
+                    else
+                        y = -line[j].a / line[j].b * x - line[j].c / line[j].b;
                     if (x > minX && x < maxX && y > minY && y < maxY) {
                         result.draw_circle(x, y, 50, color);
-                        cout << "intersection: " << x << " " << y << endl;
                     }
                 }
             }
