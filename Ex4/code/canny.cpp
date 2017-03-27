@@ -17,11 +17,11 @@ using namespace std;
 using namespace cimg_library;
 
 
-canny::canny(CImg<unsigned char> img, int low, int high)
+canny::canny(CImg<unsigned char> img, int width, int height, int sigma, int low, int high)
 {
 	this->img = img;
 	
-	vector<vector<double>> filter = createFilter(3, 3, 2);
+	vector<vector<double>> filter = createFilter(width, height, sigma);
 
     this->grayscaled = toGrayScale(); //Grayscale the image
     this->gFiltered = useFilter(grayscaled, filter); //Gaussian Filter

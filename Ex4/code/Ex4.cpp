@@ -240,8 +240,12 @@ public:
 
 int main(int argc, char* argv[]) {
     CImg<double> source(argv[1]);
-    int low = atoi(argv[2]);
-    int high = atoi(argv[3]);
+    int width = atoi(argv[2]);
+    int height = atoi(argv[3]);
+    int sigma = atoi(argv[4]);
+    int low = atoi(argv[5]);
+    int high = atoi(argv[6]);
+
 
     canny cannySource(source, low, high);
     houghDetector sourceEdge(cannySource);
