@@ -43,6 +43,7 @@ private:
     int rhoGridWidth;
     int thetaFilterWidth;
     int rhoFilterWidth;
+    int verticalThreshold;
 
 public:
     houghDetector(canny& cannySource) {
@@ -52,6 +53,7 @@ public:
         houghSpace = CImg<double>(360, rhoGridWidth, 1, 1, 0);
         thetaFilterWidth = 10;
         rhoFilterWidth = 150;
+        verticalThreshold = 0.05;
     }
 
     CImg<unsigned char> getEdgeImg() {
@@ -174,6 +176,44 @@ public:
         }
     }
 
+    bool ifVertical(Line& line1, Line& line2) {
+        if (line1.a== 0) {
+            if (line2.b == 0)
+                return true;
+            return false;
+        }
+        else if (line2.a == 0) {
+            if (line1.b == 0)
+                return true;
+            return false;
+        }
+        else {
+            if (abs(line1.a * line1.b + line2.a * line2.b) < verticalThreshold)
+                return true;
+            return false;
+        }
+    }
+
+    void drawIntersection(CImg<double>& result, std::vector<Line> line) {
+        const int color[] = {0, 255, 0};
+
+        const int minY = 0;
+        const int maxY = result.height() - 1;
+        const int minX = 0;
+        const int maxX = result.width() - 1;
+
+        for (int i = 0; i < line.size(); i ++) {
+            for (int j = i; j < line.size(); j ++) {
+                if (ifVertical(line[i], line[j])) {
+                    int y = (line[2].a * line[1].c - line[1].a * line[2].c) / (line[1].a * line[2].b - line[2].a * line[1].b);
+                    int x = -(line[1].b / line[1].a) * y - line[1].c / line[1].a;
+                    if (x > minX && x < maxX && y > minY && y < maxY)
+                        result.draw_circle(x, y, 5, color);
+                }
+            }
+        }
+    }
+
     void hough2gray() {
         std::vector<Line> line;
         CImg<double> result(this->img);
@@ -189,6 +229,8 @@ public:
         }
 
         drawLine(result, line);
+
+        drawIntersection(result, line);
 
         result.display();
     }
