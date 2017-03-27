@@ -183,9 +183,9 @@ public:
             max.pop();
         }
 
-        // print out the coefficients
+        // print out the line's coefficients
         for (int i = 0; i < line.size(); i ++) {
-            cout << line[i].a << " " << line[i].b << " " << line[i].c << endl;
+            cout << line[i].a << "x + " << line[i].b << "y + " << line[i].c << " = 0" << endl;
         }
 
         drawLine(result, line);
