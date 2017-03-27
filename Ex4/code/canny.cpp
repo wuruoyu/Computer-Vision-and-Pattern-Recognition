@@ -17,7 +17,7 @@ using namespace std;
 using namespace cimg_library;
 
 
-canny::canny(CImg<unsigned char>& img)
+canny::canny(CImg<unsigned char> img, int low, int high)
 {
 	this->img = img;
 	
@@ -28,8 +28,8 @@ canny::canny(CImg<unsigned char>& img)
     this->sFiltered = sobel(); //Sobel Filter
 
     non = nonMaxSupp(); //Non-Maxima Suppression
-    thres = threshold(non, 20, 40); //Double Threshold and Finalize
-	
+    thres = threshold(non, low, high); //Double Threshold and Finalize
+
 	//thres.display();
 }
 
@@ -278,4 +278,8 @@ CImg<unsigned char> canny::threshold(CImg<unsigned char> imgin,int low, int high
 
 CImg<unsigned char> canny::getEdge() {
     return this->thres;
+}
+
+CImg<unsigned char> canny::getImg() {
+    return this->img;
 }

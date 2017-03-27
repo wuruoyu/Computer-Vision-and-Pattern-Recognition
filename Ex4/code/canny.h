@@ -24,7 +24,7 @@ private:
     CImg<unsigned char> non; // Non-maxima supp.
     CImg<unsigned char> thres; //Double threshold and final
 public:
-    canny(CImg<unsigned char>); //Constructor
+    canny(CImg<unsigned char>, int, int); //Constructor
 	CImg<unsigned char> toGrayScale();
 	vector<vector<double>> createFilter(int, int, double); //Creates a gaussian filter
 	CImg<unsigned char> useFilter(CImg<unsigned char>, vector<vector<double>>); //Use some filter
@@ -32,6 +32,7 @@ public:
     CImg<unsigned char> nonMaxSupp(); //Non-maxima supp.
     CImg<unsigned char> threshold(CImg<unsigned char>, int, int); //Double threshold and finalize picture
     CImg<unsigned char> getEdge();
+    CImg<unsigned char> getImg();
 };
 
 #endif
