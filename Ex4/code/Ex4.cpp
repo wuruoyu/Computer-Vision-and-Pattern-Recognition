@@ -112,13 +112,17 @@ public:
     bool isLocalMax(int theta, int rho) {
         for (int thetaShift = -thetaFilterWidth; thetaShift <= thetaFilterWidth; thetaShift ++) {
             for (int rhoShift = -rhoFilterWidth; rhoShift <= rhoFilterWidth; rhoShift ++) {
+                int t = theta + thetaShift;
+                int r = rho + rhoShift;
                 if (thetaShift == 0 && rhoShift == 0)
                     continue;
-                if (theta + thetaShift < 0 || theta + thetaShift >= houghSpace.width())
+                if (r < 0 || r >= houghSpace.height())
                     continue;
-                if (rho + rhoShift < 0 || rho + rhoShift >= houghSpace.height())
-                    continue;
-                if (houghSpace(theta + thetaShift, rho + rhoShift) > houghSpace(theta, rho))
+                if (t < 0)
+                    t += 360;
+                if (t >= 360)
+                    t %= 360;
+                if (houghSpace(t, r) > houghSpace(theta, rho))
                     return false;
             }
         }
