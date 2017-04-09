@@ -1,1 +1,0 @@
-g++ -o Ex5 Ex5.cpp canny.cpp -O2 -lm -lpthread -L/usr/X11R6/lib -lm -lpthread -lX11 -std=c++11

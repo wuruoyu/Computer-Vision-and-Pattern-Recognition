@@ -1,1 +1,0 @@
-compile: g++ -o Ex1 Ex1.cpp -O2 -lm -lpthread -L/usr/X11R6/lib -lm -lpthread -lX11 -std=c++11
