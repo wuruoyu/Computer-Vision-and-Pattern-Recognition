@@ -1,7 +1,7 @@
 This repo includes the projects I finished from an undergrad course: computer vision and pattern recognition. All the projects are written with C++ with library CImg. 
 
 #### project 2
-canny edge detection [report (in Chinese)](https://github.com/wuruoyu/Computer-Vision-and-Pattern-Recognition/blob/master/Ex2-Canny%20Edge%20Detection/Ex2%E5%AE%9E%E9%AA%8C%E6%8A%A5%E5%91%8A.pdf)
+canny edge detection [report (in Chinese)](Ex2-Canny Edge Detection/Ex2实验报告.pdf)
 
 
 
